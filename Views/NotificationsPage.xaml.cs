@@ -19,7 +19,7 @@ public partial class NotificationsPage : ContentPage
         await ViewModel.LoadAsync();
     }
 
-    async void OnMasterToggled(object sender, ToggledEventArgs e)
+    async void OnMasterToggled(object? sender, ToggledEventArgs e)
     {
         await ViewModel.ToggleAllCommand.ExecuteAsync(e.Value);
     }

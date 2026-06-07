@@ -8,7 +8,7 @@ namespace HealthGoalsTracker.ViewModels
 {
     public partial class NotificationItemViewModel : ObservableObject
     {
-        public NotificationSchedule Schedule;
+        public NotificationSchedule Schedule = new();
 
         [ObservableProperty]
         string _label = "";
