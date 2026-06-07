@@ -1,4 +1,5 @@
 ﻿using Microsoft.Extensions.Logging;
+using HealthGoalsTracker.Services;
 
 namespace HealthGoalsTracker
 {
@@ -14,6 +15,9 @@ namespace HealthGoalsTracker
                     fonts.AddFont("OpenSans-Regular.ttf", "OpenSansRegular");
                     fonts.AddFont("OpenSans-Semibold.ttf", "OpenSansSemibold");
                 });
+
+            var dbPath = Path.Combine(FileSystem.AppDataDirectory, "healthgoals.db3");
+            builder.Services.AddSingleton<IGoalService>(_ => new LocalGoalService(dbPath));
 
 #if DEBUG
     		builder.Logging.AddDebug();
