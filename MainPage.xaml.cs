@@ -1,24 +1,22 @@
-﻿namespace HealthGoalsTracker
+﻿using HealthGoalsTracker.ViewModels;
+
+namespace HealthGoalsTracker
 {
     public partial class MainPage : ContentPage
     {
-        int count = 0;
+        public MainViewModel ViewModel;
 
-        public MainPage()
+        public MainPage(MainViewModel viewModel)
         {
             InitializeComponent();
+            ViewModel = viewModel;
+            BindingContext = viewModel;
         }
 
-        private void OnCounterClicked(object? sender, EventArgs e)
+        protected override async void OnAppearing()
         {
-            count++;
-
-            if (count == 1)
-                CounterBtn.Text = $"Clicked {count} time";
-            else
-                CounterBtn.Text = $"Clicked {count} times";
-
-            SemanticScreenReader.Announce(CounterBtn.Text);
+            base.OnAppearing();
+            await ViewModel.LoadAsync();
         }
     }
 }

@@ -100,32 +100,58 @@ public class LocalGoalService : IGoalService
     {
         await InitializeAsync();
         var todayKey = DateOnly.FromDateTime(DateTime.Today).ToString("yyyy-MM-dd");
+        var goals = await GetGoalsAsync();
 
         var record = await Database.Table<DailyRecord>()
             .Where(r => r.UserId == "local" && r.Date == todayKey)
             .FirstOrDefaultAsync();
 
-        if (record != null) return record;
-
-        // Create a fresh record for today, snapshotting every active goal.
-        var goals = await GetGoalsAsync();
-        record = new DailyRecord
+        if (record == null)
         {
-            Date = todayKey,
-            TotalPointsPossible = goals.Sum(g => g.Points)
-        };
+            // First access today — create the record and a snapshot entry for every active goal.
+            record = new DailyRecord
+            {
+                Date = todayKey,
+                TotalPointsPossible = goals.Sum(g => g.Points)
+            };
+            await Database.InsertAsync(record);
 
-        await Database.InsertAsync(record);
+            var entries = goals.Select(g => new DailyGoalEntry
+            {
+                DailyRecordId = record.Id,
+                GoalId = g.Id,
+                GoalName = g.Name,
+                GoalPoints = g.Points
+            }).ToList();
 
-        var entries = goals.Select(g => new DailyGoalEntry
+            await Database.InsertAllAsync(entries);
+            return record;
+        }
+
+        // Record already exists — reconcile any goals added since the record was created
+        // (e.g. user adds a new goal mid-day, or goals arrive from cloud sync).
+        var existingEntries = await Database.Table<DailyGoalEntry>()
+            .Where(e => e.DailyRecordId == record.Id)
+            .ToListAsync();
+        var existingGoalIds = existingEntries.Select(e => e.GoalId).ToHashSet();
+
+        var missingGoals = goals.Where(g => !existingGoalIds.Contains(g.Id)).ToList();
+        if (missingGoals.Count > 0)
         {
-            DailyRecordId = record.Id,
-            GoalId = g.Id,
-            GoalName = g.Name,
-            GoalPoints = g.Points
-        }).ToList();
+            var newEntries = missingGoals.Select(g => new DailyGoalEntry
+            {
+                DailyRecordId = record.Id,
+                GoalId = g.Id,
+                GoalName = g.Name,
+                GoalPoints = g.Points
+            }).ToList();
+            await Database.InsertAllAsync(newEntries);
 
-        await Database.InsertAllAsync(entries);
+            record.TotalPointsPossible = existingEntries.Sum(e => e.GoalPoints) + missingGoals.Sum(g => g.Points);
+            record.UpdatedAt = DateTime.UtcNow;
+            await Database.UpdateAsync(record);
+        }
+
         return record;
     }
 

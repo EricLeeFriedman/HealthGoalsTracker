@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentView xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:HealthGoalsTracker.ViewModels"
+             x:Class="HealthGoalsTracker.Controls.GoalCard"
+             x:DataType="vm:GoalCardViewModel">
+
+    <Border BackgroundColor="{Binding CardColor}"
+            StrokeThickness="0"
+            Stroke="Transparent">
+        <Border.StrokeShape>
+            <RoundRectangle CornerRadius="16" />
+        </Border.StrokeShape>
+
+        <Grid ColumnDefinitions="Auto,*,Auto" Padding="18,16">
+            <Grid.GestureRecognizers>
+                <TapGestureRecognizer Command="{Binding ToggleCommand}" />
+            </Grid.GestureRecognizers>
+
+            <!-- Checkmark indicator -->
+            <Label Grid.Column="0"
+                   Text="{Binding CompletionIcon}"
+                   FontSize="22"
+                   TextColor="White"
+                   VerticalOptions="Center"
+                   WidthRequest="28" />
+
+            <!-- Goal name + points -->
+            <VerticalStackLayout Grid.Column="1"
+                                 Spacing="3"
+                                 VerticalOptions="Center"
+                                 Margin="4,0,0,0">
+                <Label Text="{Binding Name}"
+                       FontSize="16"
+                       FontAttributes="Bold"
+                       TextColor="White"
+                       LineBreakMode="WordWrap" />
+                <Label Text="{Binding PointsBadgeText}"
+                       FontSize="13"
+                       TextColor="White"
+                       Opacity="0.85" />
+            </VerticalStackLayout>
+
+            <!-- Options button -->
+            <Button Grid.Column="2"
+                    Text="•••"
+                    FontSize="14"
+                    TextColor="White"
+                    BackgroundColor="Transparent"
+                    VerticalOptions="Center"
+                    WidthRequest="44"
+                    HeightRequest="44"
+                    Padding="0"
+                    Command="{Binding OpenOptionsCommand}" />
+        </Grid>
+    </Border>
+
+</ContentView>
