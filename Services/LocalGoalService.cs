@@ -261,6 +261,73 @@ public class LocalGoalService : IGoalService
     }
 
     // -------------------------------------------------------------------------
+    // Today snapshot helpers (called when a goal is edited or deleted mid-day)
+    // -------------------------------------------------------------------------
+
+    // Updates today's DailyGoalEntry snapshot when the user renames or re-points a goal.
+    // Recalculates DailyRecord totals if the point value changed.
+    public async Task UpdateTodayGoalSnapshotAsync(string goalId, string newName, int newPoints)
+    {
+        await InitializeAsync();
+        var todayKey = DateOnly.FromDateTime(DateTime.Today).ToString("yyyy-MM-dd");
+
+        var record = await Database.Table<DailyRecord>()
+            .Where(r => r.UserId == "local" && r.Date == todayKey)
+            .FirstOrDefaultAsync();
+        if (record == null) return;
+
+        var entry = await Database.Table<DailyGoalEntry>()
+            .Where(e => e.DailyRecordId == record.Id && e.GoalId == goalId)
+            .FirstOrDefaultAsync();
+        if (entry == null) return;
+
+        bool pointsChanged = entry.GoalPoints != newPoints;
+        entry.GoalName = newName;
+        entry.GoalPoints = newPoints;
+        entry.UpdatedAt = DateTime.UtcNow;
+        await Database.UpdateAsync(entry);
+
+        if (pointsChanged)
+        {
+            var allEntries = await Database.Table<DailyGoalEntry>()
+                .Where(e => e.DailyRecordId == record.Id)
+                .ToListAsync();
+            record.TotalPointsPossible = allEntries.Sum(e => e.GoalPoints);
+            record.TotalPointsEarned   = allEntries.Where(e => e.IsCompleted).Sum(e => e.GoalPoints);
+            record.UpdatedAt = DateTime.UtcNow;
+            await Database.UpdateAsync(record);
+        }
+    }
+
+    // Removes today's DailyGoalEntry when a goal is deleted mid-day,
+    // so the deleted goal no longer contributes to today's possible points.
+    public async Task RemoveTodayGoalEntryAsync(string goalId)
+    {
+        await InitializeAsync();
+        var todayKey = DateOnly.FromDateTime(DateTime.Today).ToString("yyyy-MM-dd");
+
+        var record = await Database.Table<DailyRecord>()
+            .Where(r => r.UserId == "local" && r.Date == todayKey)
+            .FirstOrDefaultAsync();
+        if (record == null) return;
+
+        var entry = await Database.Table<DailyGoalEntry>()
+            .Where(e => e.DailyRecordId == record.Id && e.GoalId == goalId)
+            .FirstOrDefaultAsync();
+        if (entry == null) return;
+
+        await Database.DeleteAsync(entry);
+
+        var allEntries = await Database.Table<DailyGoalEntry>()
+            .Where(e => e.DailyRecordId == record.Id)
+            .ToListAsync();
+        record.TotalPointsPossible = allEntries.Sum(e => e.GoalPoints);
+        record.TotalPointsEarned   = allEntries.Where(e => e.IsCompleted).Sum(e => e.GoalPoints);
+        record.UpdatedAt = DateTime.UtcNow;
+        await Database.UpdateAsync(record);
+    }
+
+    // -------------------------------------------------------------------------
     // Seeding
     // -------------------------------------------------------------------------
 

@@ -105,29 +105,45 @@ public partial class MainViewModel : ObservableObject
             maxLength: 60,
             keyboard: Keyboard.Text);
 
-        if (string.IsNullOrWhiteSpace(newName) || newName.Trim() == card.Name) return;
+        if (newName == null) return; // user cancelled
 
-        card.Goal.Name = newName.Trim();
-        card.Name = card.Goal.Name;
+        newName = newName.Trim();
+        if (newName.Length == 0)
+        {
+            await page.DisplayAlertAsync("Invalid Name", "Goal name cannot be empty.", "OK");
+            return;
+        }
+        if (newName == card.Name) return;
+
+        card.Goal.Name = newName;
+        card.Name = newName;
         card.Goal.IsDefault = false;
         await GoalService.SaveGoalAsync(card.Goal);
+        await GoalService.UpdateTodayGoalSnapshotAsync(card.Goal.Id, newName, card.Goal.Points);
     }
 
     async Task EditGoalPointsAsync(GoalCardViewModel card, Page page)
     {
         var input = await page.DisplayPromptAsync(
-            "Edit Points", $"Points for \"{card.Name}\"",
+            "Edit Points", $"Points for \"{card.Name}\" (1–99)",
             initialValue: card.Points.ToString(),
             maxLength: 2,
             keyboard: Keyboard.Numeric);
 
-        if (!int.TryParse(input, out var newPoints) || newPoints < 1 || newPoints > 99) return;
+        if (input == null) return; // user cancelled
+
+        if (!int.TryParse(input, out var newPoints) || newPoints < 1 || newPoints > 99)
+        {
+            await page.DisplayAlertAsync("Invalid Points", "Please enter a whole number between 1 and 99.", "OK");
+            return;
+        }
         if (newPoints == card.Points) return;
 
         card.Goal.Points = newPoints;
         card.Points = newPoints;
         card.Goal.IsDefault = false;
         await GoalService.SaveGoalAsync(card.Goal);
+        await GoalService.UpdateTodayGoalSnapshotAsync(card.Goal.Id, card.Goal.Name, newPoints);
 
         var record = await GoalService.GetTodayRecordAsync();
         UpdateScore(record);
@@ -143,6 +159,7 @@ public partial class MainViewModel : ObservableObject
         if (!confirmed) return;
 
         await GoalService.DeleteGoalAsync(card.Goal.Id);
+        await GoalService.RemoveTodayGoalEntryAsync(card.Goal.Id);
         Goals.Remove(card);
 
         var record = await GoalService.GetTodayRecordAsync();
@@ -163,19 +180,32 @@ public partial class MainViewModel : ObservableObject
             maxLength: 60,
             keyboard: Keyboard.Text);
 
-        if (string.IsNullOrWhiteSpace(name)) return;
+        if (name == null) return; // user cancelled
+
+        name = name.Trim();
+        if (name.Length == 0)
+        {
+            await page.DisplayAlertAsync("Invalid Name", "Goal name cannot be empty.", "OK");
+            return;
+        }
 
         var pointsInput = await page.DisplayPromptAsync(
-            "New Goal", $"Points for \"{name.Trim()}\" (1–99)",
+            "New Goal", $"Points for \"{name}\" (1–99)",
             initialValue: "1",
             maxLength: 2,
             keyboard: Keyboard.Numeric);
 
-        if (!int.TryParse(pointsInput, out var pts) || pts < 1) pts = 1;
+        if (pointsInput == null) return; // user cancelled
+
+        if (!int.TryParse(pointsInput, out var pts) || pts < 1 || pts > 99)
+        {
+            await page.DisplayAlertAsync("Invalid Points", "Please enter a whole number between 1 and 99.", "OK");
+            return;
+        }
 
         var newGoal = new Goal
         {
-            Name = name.Trim(),
+            Name = name,
             Points = pts,
             SortOrder = Goals.Count
         };

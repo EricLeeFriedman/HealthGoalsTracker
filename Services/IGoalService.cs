@@ -27,4 +27,8 @@ public interface IGoalService
 
     // Called once during Phase 8 (auth) to claim local data for the signed-in user.
     Task UpdateUserIdAsync(string newUserId);
+
+    // Keeps today's DailyGoalEntry snapshot in sync when a goal is edited or deleted mid-day.
+    Task UpdateTodayGoalSnapshotAsync(string goalId, string newName, int newPoints);
+    Task RemoveTodayGoalEntryAsync(string goalId);
 }
