@@ -11,6 +11,7 @@ namespace HealthGoalsTracker.ViewModels;
 public partial class MainViewModel : ObservableObject
 {
     public IGoalService GoalService;
+    public IHealthNotificationService NotificationService;
 
     [ObservableProperty]
     ObservableCollection<GoalCardViewModel> goals = [];
@@ -27,9 +28,10 @@ public partial class MainViewModel : ObservableObject
     [ObservableProperty]
     bool isLoading;
 
-    public MainViewModel(IGoalService goalService)
+    public MainViewModel(IGoalService goalService, IHealthNotificationService notificationService)
     {
         GoalService = goalService;
+        NotificationService = notificationService;
         TodayDateText = DateTime.Today.ToString("dddd, MMMM d, yyyy");
     }
 
@@ -84,7 +86,14 @@ public partial class MainViewModel : ObservableObject
 
         // Only celebrate when a goal is newly checked — not when unchecking.
         if (card.IsCompleted)
+        {
             WeakReferenceMessenger.Default.Send(new CelebrationMessage(AllGoalsCompleted));
+
+            // Cancel nudge notifications when the first goal of the day is completed.
+            bool isFirstCompletion = Goals.Count(g => g.IsCompleted) == 1;
+            if (isFirstCompletion)
+                _ = NotificationService.CancelNudgesAsync();
+        }
     }
 
     // -------------------------------------------------------------------------

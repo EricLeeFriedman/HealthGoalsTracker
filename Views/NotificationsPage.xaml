@@ -1,9 +1,67 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:HealthGoalsTracker.ViewModels"
              x:Class="HealthGoalsTracker.Views.NotificationsPage"
-             Title="Notifications">
-    <!-- Full implementation in Phase 7 -->
-    <ActivityIndicator IsRunning="True" Color="#512BD4"
-                       HorizontalOptions="Center" VerticalOptions="Center" />
+             x:DataType="vm:NotificationsViewModel"
+             Title="Notifications"
+             BackgroundColor="#F5F5F5">
+
+    <ScrollView>
+        <VerticalStackLayout Spacing="0" Padding="16,12">
+
+            <!-- Master toggle -->
+            <Border Padding="16,12" Margin="0,0,0,12"
+                    StrokeShape="RoundRectangle 12"
+                    BackgroundColor="White"
+                    Stroke="#E0E0E0" StrokeThickness="1">
+                <Grid ColumnDefinitions="*,Auto">
+                    <VerticalStackLayout Grid.Column="0" Spacing="2">
+                        <Label Text="Push Notifications"
+                               FontSize="16" FontAttributes="Bold" />
+                        <Label Text="Enable or disable all reminders"
+                               FontSize="12" TextColor="#888" />
+                    </VerticalStackLayout>
+                    <Switch Grid.Column="1"
+                            IsToggled="{Binding NotificationsEnabled}"
+                            VerticalOptions="Center"
+                            ThumbColor="#512BD4"
+                            OnColor="#7B5EA7"
+                            Toggled="OnMasterToggled" />
+                </Grid>
+            </Border>
+
+            <!-- Per-notification items -->
+            <CollectionView ItemsSource="{Binding Items}" SelectionMode="None">
+                <CollectionView.ItemTemplate>
+                    <DataTemplate x:DataType="vm:NotificationItemViewModel">
+                        <Border Padding="16,12" Margin="0,0,0,10"
+                                StrokeShape="RoundRectangle 12"
+                                BackgroundColor="White"
+                                Stroke="#E0E0E0" StrokeThickness="1">
+                            <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto" RowSpacing="8">
+
+                                <Label Grid.Row="0" Grid.Column="0"
+                                       Text="{Binding Label}"
+                                       FontSize="15" FontAttributes="Bold"
+                                       VerticalOptions="Center" />
+                                <Switch Grid.Row="0" Grid.Column="1"
+                                        IsToggled="{Binding IsEnabled}"
+                                        VerticalOptions="Center"
+                                        ThumbColor="#512BD4"
+                                        OnColor="#7B5EA7" />
+
+                                <TimePicker Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2"
+                                            Time="{Binding Time}"
+                                            Format="hh:mm tt"
+                                            IsEnabled="{Binding IsEnabled}" />
+                            </Grid>
+                        </Border>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+            </CollectionView>
+
+        </VerticalStackLayout>
+    </ScrollView>
+
 </ContentPage>

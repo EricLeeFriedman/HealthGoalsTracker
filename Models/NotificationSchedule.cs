@@ -18,6 +18,12 @@ public class NotificationSchedule
     // Controls display order within a NotificationType group.
     public int SortOrder { get; set; }
 
+    public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
+
     [Ignore]
     public TimeOnly Time => new(HourOfDay, MinuteOfHour);
+
+    // Convenience aliases used by NotificationScheduler
+    [Ignore] public int Hour   { get => HourOfDay;   set => HourOfDay   = value; }
+    [Ignore] public int Minute { get => MinuteOfHour; set => MinuteOfHour = value; }
 }

@@ -1,4 +1,4 @@
-﻿using Microsoft.Extensions.DependencyInjection;
+using HealthGoalsTracker.Services;
 
 namespace HealthGoalsTracker
 {
@@ -6,10 +6,13 @@ namespace HealthGoalsTracker
     {
         public AppShell AppShellInstance;
 
-        public App(AppShell appShell)
+        public App(AppShell appShell, IHealthNotificationService notificationService)
         {
             InitializeComponent();
             AppShellInstance = appShell;
+
+            // Schedule (or re-schedule) notifications on every app launch.
+            _ = notificationService.RescheduleAllAsync();
         }
 
         protected override Window CreateWindow(IActivationState? activationState)
