@@ -1,9 +1,154 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:HealthGoalsTracker.ViewModels"
              x:Class="HealthGoalsTracker.Views.HistoryPage"
-             Title="History">
-    <!-- Full implementation in Phase 6 -->
-    <ActivityIndicator IsRunning="True" Color="#512BD4"
-                       HorizontalOptions="Center" VerticalOptions="Center" />
+             x:DataType="vm:HistoryViewModel"
+             Title="History"
+             BackgroundColor="#F5F5F5">
+
+    <ScrollView>
+        <VerticalStackLayout Spacing="0">
+
+            <!-- Month navigation header -->
+            <Grid ColumnDefinitions="48,*,48"
+                  BackgroundColor="#512BD4"
+                  Padding="8,12">
+                <Button Grid.Column="0"
+                        Text="‹"
+                        FontSize="24"
+                        TextColor="White"
+                        BackgroundColor="Transparent"
+                        Command="{Binding PreviousMonthCommand}" />
+                <Label Grid.Column="1"
+                       Text="{Binding MonthLabel}"
+                       FontSize="18"
+                       FontAttributes="Bold"
+                       TextColor="White"
+                       HorizontalOptions="Center"
+                       VerticalOptions="Center" />
+                <Button Grid.Column="2"
+                        Text="›"
+                        FontSize="24"
+                        TextColor="White"
+                        BackgroundColor="Transparent"
+                        Command="{Binding NextMonthCommand}" />
+            </Grid>
+
+            <!-- Weekday header row -->
+            <Grid ColumnDefinitions="*,*,*,*,*,*,*"
+                  BackgroundColor="#EDE7F6"
+                  Padding="4,6">
+                <Label Grid.Column="0" Text="Su" HorizontalOptions="Center" FontSize="12" FontAttributes="Bold" TextColor="#512BD4" />
+                <Label Grid.Column="1" Text="Mo" HorizontalOptions="Center" FontSize="12" FontAttributes="Bold" TextColor="#512BD4" />
+                <Label Grid.Column="2" Text="Tu" HorizontalOptions="Center" FontSize="12" FontAttributes="Bold" TextColor="#512BD4" />
+                <Label Grid.Column="3" Text="We" HorizontalOptions="Center" FontSize="12" FontAttributes="Bold" TextColor="#512BD4" />
+                <Label Grid.Column="4" Text="Th" HorizontalOptions="Center" FontSize="12" FontAttributes="Bold" TextColor="#512BD4" />
+                <Label Grid.Column="5" Text="Fr" HorizontalOptions="Center" FontSize="12" FontAttributes="Bold" TextColor="#512BD4" />
+                <Label Grid.Column="6" Text="Sa" HorizontalOptions="Center" FontSize="12" FontAttributes="Bold" TextColor="#512BD4" />
+            </Grid>
+
+            <!-- Calendar grid -->
+            <CollectionView ItemsSource="{Binding Days}"
+                            SelectionMode="None"
+                            Margin="4,4">
+                <CollectionView.ItemsLayout>
+                    <GridItemsLayout Orientation="Vertical"
+                                     Span="7"
+                                     HorizontalItemSpacing="4"
+                                     VerticalItemSpacing="4" />
+                </CollectionView.ItemsLayout>
+                <CollectionView.ItemTemplate>
+                    <DataTemplate x:DataType="vm:CalendarDayViewModel">
+                        <Border BackgroundColor="{Binding BackgroundColor}"
+                                StrokeThickness="2"
+                                Stroke="{Binding BorderColor}"
+                                StrokeShape="RoundRectangle 6"
+                                HeightRequest="42">
+                            <Border.GestureRecognizers>
+                                <TapGestureRecognizer
+                                    Command="{Binding Source={RelativeSource AncestorType={x:Type vm:HistoryViewModel}},
+                                                      Path=SelectDayCommand}"
+                                    CommandParameter="{Binding .}" />
+                            </Border.GestureRecognizers>
+                            <Label Text="{Binding DayLabel}"
+                                   FontSize="13"
+                                   FontAttributes="Bold"
+                                   TextColor="White"
+                                   HorizontalOptions="Center"
+                                   VerticalOptions="Center" />
+                        </Border>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+            </CollectionView>
+
+            <!-- Color legend -->
+            <HorizontalStackLayout Spacing="12" HorizontalOptions="Center" Margin="0,8,0,4">
+                <HorizontalStackLayout Spacing="4">
+                    <BoxView Color="#4CAF50" WidthRequest="14" HeightRequest="14" CornerRadius="3" VerticalOptions="Center" />
+                    <Label Text="100%" FontSize="11" VerticalOptions="Center" />
+                </HorizontalStackLayout>
+                <HorizontalStackLayout Spacing="4">
+                    <BoxView Color="#FFC107" WidthRequest="14" HeightRequest="14" CornerRadius="3" VerticalOptions="Center" />
+                    <Label Text="50–99%" FontSize="11" VerticalOptions="Center" />
+                </HorizontalStackLayout>
+                <HorizontalStackLayout Spacing="4">
+                    <BoxView Color="#FF9800" WidthRequest="14" HeightRequest="14" CornerRadius="3" VerticalOptions="Center" />
+                    <Label Text="1–49%" FontSize="11" VerticalOptions="Center" />
+                </HorizontalStackLayout>
+                <HorizontalStackLayout Spacing="4">
+                    <BoxView Color="#F44336" WidthRequest="14" HeightRequest="14" CornerRadius="3" VerticalOptions="Center" />
+                    <Label Text="0%" FontSize="11" VerticalOptions="Center" />
+                </HorizontalStackLayout>
+                <HorizontalStackLayout Spacing="4">
+                    <BoxView Color="#E0E0E0" WidthRequest="14" HeightRequest="14" CornerRadius="3" VerticalOptions="Center" />
+                    <Label Text="No data" FontSize="11" VerticalOptions="Center" />
+                </HorizontalStackLayout>
+            </HorizontalStackLayout>
+
+            <!-- Day breakdown panel (visible when a day is selected) -->
+            <Border IsVisible="{Binding HasSelectedDay}"
+                    Margin="12,8"
+                    Padding="16"
+                    StrokeShape="RoundRectangle 12"
+                    BackgroundColor="White"
+                    Stroke="#E0E0E0"
+                    StrokeThickness="1">
+                <VerticalStackLayout Spacing="8">
+                    <Label Text="{Binding SelectedDayLabel}"
+                           FontSize="16"
+                           FontAttributes="Bold"
+                           TextColor="#512BD4" />
+                    <Label Text="{Binding SelectedDaySummary}"
+                           FontSize="14"
+                           TextColor="#555" />
+                    <BoxView HeightRequest="1" Color="#EEE" Margin="0,4" />
+                    <CollectionView ItemsSource="{Binding SelectedDayGoals}"
+                                    SelectionMode="None">
+                        <CollectionView.ItemTemplate>
+                            <DataTemplate x:DataType="vm:GoalBreakdownItem">
+                                <Grid ColumnDefinitions="32,*,Auto" Padding="0,4">
+                                    <Label Grid.Column="0"
+                                           Text="{Binding StatusIcon}"
+                                           FontSize="16"
+                                           VerticalOptions="Center" />
+                                    <Label Grid.Column="1"
+                                           Text="{Binding GoalName}"
+                                           FontSize="14"
+                                           VerticalOptions="Center" />
+                                    <Label Grid.Column="2"
+                                           Text="{Binding GoalPoints, StringFormat='{0} pt'}"
+                                           FontSize="13"
+                                           TextColor="#888"
+                                           VerticalOptions="Center" />
+                                </Grid>
+                            </DataTemplate>
+                        </CollectionView.ItemTemplate>
+                    </CollectionView>
+                </VerticalStackLayout>
+            </Border>
+
+        </VerticalStackLayout>
+    </ScrollView>
+
 </ContentPage>

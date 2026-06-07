@@ -21,6 +21,7 @@ namespace HealthGoalsTracker
             var dbPath = Path.Combine(FileSystem.AppDataDirectory, "healthgoals.db3");
             builder.Services.AddSingleton<IGoalService>(_ => new LocalGoalService(dbPath));
             builder.Services.AddSingleton<MainViewModel>();
+            builder.Services.AddSingleton<HistoryViewModel>();
             builder.Services.AddSingleton<MainPage>();
             builder.Services.AddSingleton<HistoryPage>();
             builder.Services.AddSingleton<NotificationsPage>();
