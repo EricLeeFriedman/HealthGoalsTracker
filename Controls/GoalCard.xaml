@@ -14,7 +14,7 @@
 
         <Grid ColumnDefinitions="Auto,*,Auto" Padding="18,16">
             <Grid.GestureRecognizers>
-                <TapGestureRecognizer Command="{Binding ToggleCommand}" />
+                <TapGestureRecognizer Tapped="OnCardTapped" />
             </Grid.GestureRecognizers>
 
             <!-- Checkmark indicator -->

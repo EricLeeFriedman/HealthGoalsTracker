@@ -1,6 +1,8 @@
 using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using CommunityToolkit.Mvvm.Messaging;
+using HealthGoalsTracker.Messages;
 using HealthGoalsTracker.Models;
 using HealthGoalsTracker.Services;
 
@@ -73,10 +75,16 @@ public partial class MainViewModel : ObservableObject
 
     async Task ToggleGoalInternalAsync(GoalCardViewModel card)
     {
+        bool wasCompleted = card.IsCompleted;
         await GoalService.ToggleGoalCompletionAsync(card.Goal.Id);
         card.IsCompleted = !card.IsCompleted;
+
         var record = await GoalService.GetTodayRecordAsync();
         UpdateScore(record);
+
+        // Only celebrate when a goal is newly checked — not when unchecking.
+        if (card.IsCompleted)
+            WeakReferenceMessenger.Default.Send(new CelebrationMessage(AllGoalsCompleted));
     }
 
     // -------------------------------------------------------------------------

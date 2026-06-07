@@ -59,6 +59,44 @@
                 FontAttributes="Bold"
                 HeightRequest="52" />
 
+        <!-- ── Overlays (span all three rows, above all content) ── -->
+
+        <!-- Confetti particle canvas -->
+        <controls:ConfettiView x:Name="ConfettiCanvas"
+                               Grid.RowSpan="3"
+                               HorizontalOptions="Fill"
+                               VerticalOptions="Fill" />
+
+        <!-- "All goals complete" celebration banner -->
+        <Border x:Name="CelebrationBanner"
+                Grid.RowSpan="3"
+                IsVisible="False"
+                VerticalOptions="Center"
+                HorizontalOptions="Center"
+                BackgroundColor="#DD000000"
+                Stroke="Transparent"
+                StrokeThickness="0"
+                Padding="32,24"
+                InputTransparent="True">
+            <Border.StrokeShape>
+                <RoundRectangle CornerRadius="20" />
+            </Border.StrokeShape>
+            <VerticalStackLayout Spacing="8" HorizontalOptions="Center">
+                <Label Text="🎉"
+                       FontSize="52"
+                       HorizontalOptions="Center" />
+                <Label Text="All Goals Complete!"
+                       FontSize="22"
+                       FontAttributes="Bold"
+                       TextColor="White"
+                       HorizontalOptions="Center" />
+                <Label Text="Incredible day! Keep it up 💪"
+                       FontSize="14"
+                       TextColor="#CCFFFFFF"
+                       HorizontalOptions="Center" />
+            </VerticalStackLayout>
+        </Border>
+
     </Grid>
 
 </ContentPage>
