@@ -327,6 +327,32 @@ public class LocalGoalService : IGoalService
         await Database.UpdateAsync(record);
     }
 
+    public async Task ResetTodayAsync()
+    {
+        await InitializeAsync();
+        var todayKey = DateOnly.FromDateTime(DateTime.Today).ToString("yyyy-MM-dd");
+
+        var record = await Database.Table<DailyRecord>()
+            .Where(r => r.UserId == "local" && r.Date == todayKey)
+            .FirstOrDefaultAsync();
+        if (record == null) return;
+
+        var entries = await Database.Table<DailyGoalEntry>()
+            .Where(e => e.DailyRecordId == record.Id)
+            .ToListAsync();
+
+        foreach (var entry in entries)
+        {
+            entry.IsCompleted = false;
+            entry.UpdatedAt = DateTime.UtcNow;
+        }
+        await Database.UpdateAllAsync(entries);
+
+        record.TotalPointsEarned = 0;
+        record.UpdatedAt = DateTime.UtcNow;
+        await Database.UpdateAsync(record);
+    }
+
     // -------------------------------------------------------------------------
     // Seeding
     // -------------------------------------------------------------------------

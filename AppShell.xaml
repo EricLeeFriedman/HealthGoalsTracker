@@ -3,7 +3,22 @@
     x:Class="HealthGoalsTracker.AppShell"
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
-    FlyoutBehavior="Disabled">
-    <!-- Shell content is added in code-behind via DI-injected MainPage.
-         FlyoutBehavior will be enabled in Phase 5 (hamburger menu). -->
+    FlyoutBehavior="Flyout"
+    FlyoutBackgroundColor="#FAFAFA">
+
+    <Shell.FlyoutHeader>
+        <Grid BackgroundColor="#512BD4" Padding="20,50,20,24">
+            <VerticalStackLayout Spacing="4">
+                <Label Text="🏃" FontSize="36" />
+                <Label Text="Health Goals Tracker"
+                       FontSize="18"
+                       FontAttributes="Bold"
+                       TextColor="White" />
+            </VerticalStackLayout>
+        </Grid>
+    </Shell.FlyoutHeader>
+
+    <!-- Navigation items and action MenuItems are added
+         programmatically in code-behind via DI-injected pages. -->
+
 </Shell>

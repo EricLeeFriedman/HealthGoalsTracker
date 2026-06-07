@@ -1,6 +1,7 @@
 ﻿using Microsoft.Extensions.Logging;
 using HealthGoalsTracker.Services;
 using HealthGoalsTracker.ViewModels;
+using HealthGoalsTracker.Views;
 
 namespace HealthGoalsTracker
 {
@@ -21,6 +22,8 @@ namespace HealthGoalsTracker
             builder.Services.AddSingleton<IGoalService>(_ => new LocalGoalService(dbPath));
             builder.Services.AddSingleton<MainViewModel>();
             builder.Services.AddSingleton<MainPage>();
+            builder.Services.AddSingleton<HistoryPage>();
+            builder.Services.AddSingleton<NotificationsPage>();
             builder.Services.AddSingleton<AppShell>();
 
 #if DEBUG
