@@ -30,13 +30,17 @@ public partial class GoalCardViewModel : ObservableObject
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(PointsBadgeText))]
+    bool isWeeklyOnly;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(PointsBadgeText))]
     int points;
 
     public Color CardColor => IsCompleted
         ? Color.FromArgb("#43A047")   // green-600
         : Color.FromArgb("#E53935");  // red-600
 
-    public string PointsBadgeText => Points == 1 ? "1 pt" : $"{Points} pts";
+    public string PointsBadgeText => IsWeeklyOnly ? "🗓 Weekly" : (Points == 1 ? "1 pt" : $"{Points} pts");
 
     public string CompletionIcon => IsCompleted ? "✓" : "";
 

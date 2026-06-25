@@ -138,7 +138,7 @@ public class LocalGoalService : IGoalService
             record = new DailyRecord
             {
                 Date = todayKey,
-                TotalPointsPossible = goals.Sum(g => g.Points)
+                TotalPointsPossible = goals.Where(g => !g.IsWeeklyOnly).Sum(g => g.Points)
             };
             await Database.InsertAsync(record);
 
@@ -177,7 +177,8 @@ public class LocalGoalService : IGoalService
             }).ToList();
             await Database.InsertAllAsync(newEntries);
 
-            record.TotalPointsPossible = existingEntries.Sum(e => e.GoalPoints) + missingGoals.Sum(g => g.Points);
+            record.TotalPointsPossible = existingEntries.Where(e => !e.IsWeeklyOnly).Sum(e => e.GoalPoints)
+                                       + missingGoals.Where(g => !g.IsWeeklyOnly).Sum(g => g.Points);
             record.UpdatedAt = DateTime.UtcNow;
             await Database.UpdateAsync(record);
         }
@@ -227,10 +228,10 @@ public class LocalGoalService : IGoalService
         entry.UpdatedAt = DateTime.UtcNow;
         await Database.UpdateAsync(entry);
 
-        // Recalculate cached sums on the parent record.
+        // Recalculate cached sums on the parent record (weekly-only goals excluded from totals).
         var allEntries = await GetDailyEntriesAsync(record.Id);
-        record.TotalPointsEarned = allEntries.Where(e => e.IsCompleted).Sum(e => e.GoalPoints);
-        record.TotalPointsPossible = allEntries.Sum(e => e.GoalPoints);
+        record.TotalPointsEarned   = allEntries.Where(e => e.IsCompleted && !e.IsWeeklyOnly).Sum(e => e.GoalPoints);
+        record.TotalPointsPossible = allEntries.Where(e => !e.IsWeeklyOnly).Sum(e => e.GoalPoints);
         record.UpdatedAt = DateTime.UtcNow;
         await Database.UpdateAsync(record);
     }
@@ -296,7 +297,7 @@ public class LocalGoalService : IGoalService
 
     // Updates today's DailyGoalEntry snapshot when the user renames or re-points a goal.
     // Recalculates DailyRecord totals if the point value changed.
-    public async Task UpdateTodayGoalSnapshotAsync(string goalId, string newName, int newPoints, string iconEmoji)
+    public async Task UpdateTodayGoalSnapshotAsync(string goalId, string newName, int newPoints, string iconEmoji, bool isWeeklyOnly)
     {
         await InitializeAsync();
         var todayKey = DateOnly.FromDateTime(DateTime.Today).ToString("yyyy-MM-dd");
@@ -311,10 +312,11 @@ public class LocalGoalService : IGoalService
             .FirstOrDefaultAsync();
         if (entry == null) return;
 
-        bool pointsChanged = entry.GoalPoints != newPoints;
+        bool pointsChanged = entry.GoalPoints != newPoints || entry.IsWeeklyOnly != isWeeklyOnly;
         entry.GoalName = newName;
         entry.IconEmoji = iconEmoji;
         entry.GoalPoints = newPoints;
+        entry.IsWeeklyOnly = isWeeklyOnly;
         entry.UpdatedAt = DateTime.UtcNow;
         await Database.UpdateAsync(entry);
 
@@ -323,8 +325,8 @@ public class LocalGoalService : IGoalService
             var allEntries = await Database.Table<DailyGoalEntry>()
                 .Where(e => e.DailyRecordId == record.Id)
                 .ToListAsync();
-            record.TotalPointsPossible = allEntries.Sum(e => e.GoalPoints);
-            record.TotalPointsEarned   = allEntries.Where(e => e.IsCompleted).Sum(e => e.GoalPoints);
+            record.TotalPointsPossible = allEntries.Where(e => !e.IsWeeklyOnly).Sum(e => e.GoalPoints);
+            record.TotalPointsEarned   = allEntries.Where(e => e.IsCompleted && !e.IsWeeklyOnly).Sum(e => e.GoalPoints);
             record.UpdatedAt = DateTime.UtcNow;
             await Database.UpdateAsync(record);
         }
@@ -352,8 +354,8 @@ public class LocalGoalService : IGoalService
         var allEntries = await Database.Table<DailyGoalEntry>()
             .Where(e => e.DailyRecordId == record.Id)
             .ToListAsync();
-        record.TotalPointsPossible = allEntries.Sum(e => e.GoalPoints);
-        record.TotalPointsEarned   = allEntries.Where(e => e.IsCompleted).Sum(e => e.GoalPoints);
+        record.TotalPointsPossible = allEntries.Where(e => !e.IsWeeklyOnly).Sum(e => e.GoalPoints);
+        record.TotalPointsEarned   = allEntries.Where(e => e.IsCompleted && !e.IsWeeklyOnly).Sum(e => e.GoalPoints);
         record.UpdatedAt = DateTime.UtcNow;
         await Database.UpdateAsync(record);
     }
@@ -382,6 +384,35 @@ public class LocalGoalService : IGoalService
         record.TotalPointsEarned = 0;
         record.UpdatedAt = DateTime.UtcNow;
         await Database.UpdateAsync(record);
+    }
+
+    // -------------------------------------------------------------------------
+    // Weekly scoring
+    // -------------------------------------------------------------------------
+
+    public async Task<(double WeeklyScore, double WeeklyPercent)> GetWeeklyScoreAsync(string userId, DateOnly weekStart)
+    {
+        await InitializeAsync();
+        var weekEnd = weekStart.AddDays(6);
+        var records = await GetRecordsForRangeAsync(weekStart, weekEnd);
+
+        if (records.Count == 0)
+            return (0, 0);
+
+        // Average daily points (non-weekly only) over days that have data.
+        double avgDailyPts = records.Sum(r => r.TotalPointsEarned) / (double)records.Count;
+
+        // Count weekly-only completions (e.g. Strength Training sessions) across the week.
+        int trainingSessions = 0;
+        foreach (var record in records)
+        {
+            var entries = await GetDailyEntriesAsync(record.Id);
+            trainingSessions += entries.Count(e => e.IsWeeklyOnly && e.IsCompleted);
+        }
+
+        double weeklyScore   = avgDailyPts + Math.Min(trainingSessions, 3);
+        double weeklyPercent = weeklyScore / 17.0 * 100.0;
+        return (weeklyScore, weeklyPercent);
     }
 
     // -------------------------------------------------------------------------

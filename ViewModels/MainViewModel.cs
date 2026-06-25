@@ -17,7 +17,10 @@ public partial class MainViewModel : ObservableObject
     ObservableCollection<GoalCardViewModel> goals = [];
 
     [ObservableProperty]
-    string scoreText = "—";
+    string dailyScoreText = "—";
+
+    [ObservableProperty]
+    string weeklyScoreText = "—";
 
     [ObservableProperty]
     string todayDateText = string.Empty;
@@ -58,13 +61,14 @@ public partial class MainViewModel : ObservableObject
                     Name = goal.Name,
                     IconEmoji = goal.IconEmoji,
                     Points = goal.Points,
+                    IsWeeklyOnly = goal.IsWeeklyOnly,
                     IsCompleted = entry?.IsCompleted ?? false,
                     OnToggleRequested = ToggleGoalInternalAsync,
                     OnOptionsRequested = ShowGoalOptionsInternalAsync
                 });
             }
 
-            UpdateScore(record);
+            await UpdateScoreAsync(record);
         }
         finally
         {
@@ -83,7 +87,7 @@ public partial class MainViewModel : ObservableObject
         card.IsCompleted = !card.IsCompleted;
 
         var record = await GoalService.GetTodayRecordAsync();
-        UpdateScore(record);
+        await UpdateScoreAsync(record);
 
         // Only celebrate when a goal is newly checked — not when unchecking.
         if (card.IsCompleted)
@@ -105,14 +109,15 @@ public partial class MainViewModel : ObservableObject
     {
         var page = GetCurrentPage();
         var action = await page.DisplayActionSheetAsync(card.Name, "Cancel", null,
-            "Edit Name", "Edit Points", "Edit Emoji", "Delete");
+            "Edit Name", "Edit Points", "Edit Emoji", "Toggle Weekly-Only", "Delete");
 
         switch (action)
         {
-            case "Edit Name":   await EditGoalNameAsync(card, page);   break;
-            case "Edit Points": await EditGoalPointsAsync(card, page); break;
-            case "Edit Emoji":  await EditGoalEmojiAsync(card, page);  break;
-            case "Delete":      await DeleteGoalAsync(card, page);     break;
+            case "Edit Name":          await EditGoalNameAsync(card, page);        break;
+            case "Edit Points":        await EditGoalPointsAsync(card, page);      break;
+            case "Edit Emoji":         await EditGoalEmojiAsync(card, page);       break;
+            case "Toggle Weekly-Only": await ToggleWeeklyOnlyAsync(card, page);    break;
+            case "Delete":             await DeleteGoalAsync(card, page);          break;
         }
     }
 
@@ -138,7 +143,7 @@ public partial class MainViewModel : ObservableObject
         card.Name = newName;
         card.Goal.IsDefault = false;
         await GoalService.SaveGoalAsync(card.Goal);
-        await GoalService.UpdateTodayGoalSnapshotAsync(card.Goal.Id, newName, card.Goal.Points, card.Goal.IconEmoji);
+        await GoalService.UpdateTodayGoalSnapshotAsync(card.Goal.Id, newName, card.Goal.Points, card.Goal.IconEmoji, card.Goal.IsWeeklyOnly);
     }
 
     async Task EditGoalPointsAsync(GoalCardViewModel card, Page page)
@@ -162,10 +167,10 @@ public partial class MainViewModel : ObservableObject
         card.Points = newPoints;
         card.Goal.IsDefault = false;
         await GoalService.SaveGoalAsync(card.Goal);
-        await GoalService.UpdateTodayGoalSnapshotAsync(card.Goal.Id, card.Goal.Name, newPoints, card.Goal.IconEmoji);
+        await GoalService.UpdateTodayGoalSnapshotAsync(card.Goal.Id, card.Goal.Name, newPoints, card.Goal.IconEmoji, card.Goal.IsWeeklyOnly);
 
         var record = await GoalService.GetTodayRecordAsync();
-        UpdateScore(record);
+        await UpdateScoreAsync(record);
     }
 
     async Task EditGoalEmojiAsync(GoalCardViewModel card, Page page)
@@ -186,7 +191,19 @@ public partial class MainViewModel : ObservableObject
         card.IconEmoji = newEmoji;
         card.Goal.IsDefault = false;
         await GoalService.SaveGoalAsync(card.Goal);
-        await GoalService.UpdateTodayGoalSnapshotAsync(card.Goal.Id, card.Goal.Name, card.Goal.Points, newEmoji);
+        await GoalService.UpdateTodayGoalSnapshotAsync(card.Goal.Id, card.Goal.Name, card.Goal.Points, newEmoji, card.Goal.IsWeeklyOnly);
+    }
+
+    async Task ToggleWeeklyOnlyAsync(GoalCardViewModel card, Page page)
+    {
+        card.Goal.IsWeeklyOnly = !card.Goal.IsWeeklyOnly;
+        card.IsWeeklyOnly = card.Goal.IsWeeklyOnly;
+        card.Goal.IsDefault = false;
+        await GoalService.SaveGoalAsync(card.Goal);
+        await GoalService.UpdateTodayGoalSnapshotAsync(card.Goal.Id, card.Goal.Name, card.Goal.Points, card.Goal.IconEmoji, card.Goal.IsWeeklyOnly);
+
+        var record = await GoalService.GetTodayRecordAsync();
+        await UpdateScoreAsync(record);
     }
 
     async Task DeleteGoalAsync(GoalCardViewModel card, Page page)
@@ -203,7 +220,7 @@ public partial class MainViewModel : ObservableObject
         Goals.Remove(card);
 
         var record = await GoalService.GetTodayRecordAsync();
-        UpdateScore(record);
+        await UpdateScoreAsync(record);
     }
 
     // -------------------------------------------------------------------------
@@ -254,11 +271,17 @@ public partial class MainViewModel : ObservableObject
         var emoji = emojiInput.Trim();
         if (emoji.Length == 0) emoji = "⭐";
 
+        bool isWeeklyOnly = await page.DisplayAlertAsync(
+            "New Goal",
+            "Should this goal count toward the weekly score only (not the daily score)?",
+            "Weekly Only", "Daily");
+
         var newGoal = new Goal
         {
             Name = name,
             IconEmoji = emoji,
             Points = pts,
+            IsWeeklyOnly = isWeeklyOnly,
             SortOrder = Goals.Count
         };
 
@@ -272,12 +295,23 @@ public partial class MainViewModel : ObservableObject
     // Helpers
     // -------------------------------------------------------------------------
 
-    void UpdateScore(DailyRecord record)
+    async Task UpdateScoreAsync(DailyRecord record)
     {
-        var pct = record.TotalPointsPossible == 0 ? 0
-            : (int)Math.Round((double)record.TotalPointsEarned / record.TotalPointsPossible * 100);
-        ScoreText = $"{record.TotalPointsEarned} / {record.TotalPointsPossible} pts  •  {pct}%";
-        AllGoalsCompleted = Goals.Count > 0 && Goals.All(g => g.IsCompleted);
+        DailyScoreText = $"Today: {record.TotalPointsEarned} / {record.TotalPointsPossible}";
+
+        var weekStart = GetMondayOfCurrentWeek();
+        var (_, weeklyPercent) = await GoalService.GetWeeklyScoreAsync("local", weekStart);
+        WeeklyScoreText = $"This week: {(int)Math.Round(weeklyPercent)}%";
+
+        // All-goals-complete only considers non-weekly goals.
+        AllGoalsCompleted = Goals.Count > 0 && Goals.Where(g => !g.IsWeeklyOnly).All(g => g.IsCompleted);
+    }
+
+    static DateOnly GetMondayOfCurrentWeek()
+    {
+        var today = DateOnly.FromDateTime(DateTime.Today);
+        int daysFromMonday = ((int)today.DayOfWeek + 6) % 7;
+        return today.AddDays(-daysFromMonday);
     }
 
     static Page GetCurrentPage() =>

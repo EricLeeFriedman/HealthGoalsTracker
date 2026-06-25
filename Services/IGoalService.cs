@@ -29,9 +29,12 @@ public interface IGoalService
     Task UpdateUserIdAsync(string newUserId);
 
     // Keeps today's DailyGoalEntry snapshot in sync when a goal is edited or deleted mid-day.
-    Task UpdateTodayGoalSnapshotAsync(string goalId, string newName, int newPoints, string iconEmoji);
+    Task UpdateTodayGoalSnapshotAsync(string goalId, string newName, int newPoints, string iconEmoji, bool isWeeklyOnly);
     Task RemoveTodayGoalEntryAsync(string goalId);
 
     // Clears all completions for today (Reset Today action in hamburger menu).
     Task ResetTodayAsync();
+
+    // Weekly scoring: Mon–Sun range, returns (raw score out of 17, percentage 0–100).
+    Task<(double WeeklyScore, double WeeklyPercent)> GetWeeklyScoreAsync(string userId, DateOnly weekStart);
 }

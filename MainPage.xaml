@@ -9,16 +9,19 @@
 
     <Grid RowDefinitions="Auto,*,Auto">
 
-        <!-- Header: date + score -->
+        <!-- Header: date + scores -->
         <VerticalStackLayout Grid.Row="0"
                              Padding="20,18,20,10"
                              Spacing="2">
             <Label Text="{Binding TodayDateText}"
                    FontSize="13"
                    TextColor="Gray" />
-            <Label Text="{Binding ScoreText}"
+            <Label Text="{Binding DailyScoreText}"
                    FontSize="24"
                    FontAttributes="Bold" />
+            <Label Text="{Binding WeeklyScoreText}"
+                   FontSize="16"
+                   TextColor="Gray" />
         </VerticalStackLayout>
 
         <!-- Goal grid + loading indicator in the same slot -->
