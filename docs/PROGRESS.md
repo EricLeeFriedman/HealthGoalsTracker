@@ -15,30 +15,13 @@ This file lives in the repo so any agent or developer on any machine can pick up
 | 5 | **Hamburger menu (Shell flyout)** — `FlyoutBehavior=Flyout`, branded purple header, nav items (Home / History / Notifications), action items (Reset Today, Export Data as JSON share, About), `ResetTodayAsync()` added to service | `1f615ad` |
 | 6 | **History page (calendar heatmap)** — `CalendarDayViewModel` (color-coded by %, padding cells), `HistoryViewModel` (month nav, day selection, goal breakdown panel), `HistoryPage.xaml` 7-col CollectionView grid, color legend, tap-to-expand day detail | `71fa520` |
 | 7 | **Push notifications** — `Plugin.LocalNotification` 11.1.4, `IHealthNotificationService` / `NotificationScheduler`, 4 daily alarms (2 nudges + summary + recap), nudges cancelled on first goal completion, full `NotificationsPage` with master toggle + per-notification time pickers | `ccffc4f` |
+| 8 | **Emoji goal cards + updated defaults** — `IconEmoji` + `IsWeeklyOnly` added to models; new 7+1 default goals with emojis and correct points; schema migration via `ALTER TABLE ADD COLUMN` + `UPDATE` patches for existing rows; `GoalCard` tile shows large emoji; Edit Emoji option; db bumped to `healthgoals_v2.db3` for clean reseed | `19f4750` + `cb53b80` |
+| 8b | **Confetti animation overhaul** — `ConfettiView` rewritten as `GraphicsView`+`IDrawable` (eliminates first-frame hitch); burst explosion from tapped card center using projectile arc physics; rain effect for all-goals-complete; concurrent burst support; 80% fall speed; canvas-relative Y coordinate fix; CRLF enforced | `3d1107e` + `5b90886` |
+| 9+10 | **Weekly scoring + main page header** — `GetWeeklyScoreAsync` (avg daily pts over days-with-data + min(training,3), max 17, as %); daily score correctly excludes `IsWeeklyOnly` goals; `GoalCard` shows `🗓 Weekly` badge; "Toggle Weekly-Only" in options menu; `AddGoalAsync` prompts for weekly-only; header shows `Today: X / 14` + `This week: 74%` | `698a3e2` |
 
 ---
 
 ## Remaining Phases
-
-### Phase 8 — Goal Card Visual Polish + Updated Defaults
-- Add `IconEmoji` field to `Goal` and `DailyGoalEntry` models
-- Update default goal seeding to the new 7-goal set: Sleep(😴,3), Calories(🍽️,3), Protein(🥩,3), Movement(🏃,2), Water(💧,1), Meditate(🧘,1), Fast(⏱️,1) = 14 pts
-- Update `GoalCard.xaml` to display emoji prominently on the card
-- Update add/edit goal prompts to accept a custom emoji
-
-### Phase 9 — Weekly-Only Goals + Weekly Scoring
-- Add `IsWeeklyOnly` bool to `Goal` and `DailyGoalEntry` models
-- Seed **Strength Training** (💪, `IsWeeklyOnly=true`) as a default goal
-- Update `LocalGoalService`: daily score ignores weekly-only goals; weekly score = `avg(daily pts over days-with-data) + min(training_sessions, 3)`, max 17
-- Add `GetWeeklyScoreAsync(userId, weekStart)` to `IGoalService`
-- Update `GoalCard`: show a **"Weekly"** badge on `IsWeeklyOnly` goals; hide point display for them
-- Update add/edit goal UI with a "Count toward weekly score only" toggle
-
-### Phase 10 — Weekly Score on Main Page + History Enhancement
-- Update `MainViewModel`: expose `DailyScoreText` ("Today: 8 / 14") and `WeeklyScoreText` ("This week: 74%")
-- Update `MainPage.xaml` header to show both scores
-- Update `HistoryViewModel`: compute and expose weekly score % when a day is selected
-- Update `HistoryPage.xaml` day-breakdown panel to show the week's running score %
 
 ### Phase 11 — Body Measurements Page
 - New `BodyMeasurement` model (Id, UserId, Date "yyyy-MM-dd", WeightLbs?, BodyFatPercent?, Notes?, UpdatedAt)
@@ -49,6 +32,7 @@ This file lives in the repo so any agent or developer on any machine can pick up
   - Recent entries list
   - SkiaSharp dual-axis line chart (weight left axis, BF% right axis) — no new NuGet packages
 - Add **Measurements** item to the Shell flyout (`AppShell.xaml`)
+- **Remaining from Phase 10**: update `HistoryViewModel` + `HistoryPage.xaml` to show weekly score % in the day-breakdown panel
 
 ### Phase 12 — Authentication ⛔ NEEDS USER INTERVENTION
 **What to do before starting:**
