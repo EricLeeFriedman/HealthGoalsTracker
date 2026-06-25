@@ -1,10 +1,11 @@
 namespace HealthGoalsTracker.Controls;
 
-// Confetti overlay built with pure MAUI animations — no SkiaSharp package required.
-// Add to a page as a transparent, input-transparent child that spans the full area.
-public class ConfettiView : AbsoluteLayout
+// Two confetti modes:
+//   PlayBurstAsync(origin)  — particles explode outward from a point (single-goal tap)
+//   PlayAllGoalsAsync()     — particles rain down from the top (all goals complete)
+public class ConfettiView : GraphicsView, IDrawable
 {
-    static readonly Color[] _palette =
+    static readonly Color[] Palette =
     [
         Color.FromArgb("#F44336"), // red
         Color.FromArgb("#FFEB3B"), // yellow
@@ -16,84 +17,198 @@ public class ConfettiView : AbsoluteLayout
         Color.FromArgb("#00BCD4"), // cyan
     ];
 
+    struct Particle
+    {
+        // Shared
+        public float Delay, EndTime;
+        public float W, H, CornerR;
+        public float StartRot, SpinDeg;
+        public Color Color;
+        public bool IsBurst;
+
+        // Rain mode
+        public float StartX, StartY, DriftX, FallDist;
+
+        // Burst mode
+        public float OriginX, OriginY;
+        public float LaunchDX, LaunchDY;  // pixels of travel at t=1 (before gravity)
+        public float Gravity;             // extra downward pixels at t=1 (t^2 term)
+    }
+
     readonly Random _rng = new();
-    bool _isPlaying;
+    readonly List<Particle> _particles = [];
+    Particle[] _snapshot = [];
+    IDispatcherTimer? _timer;
+    DateTime _timerStart;
+    float _elapsed;
 
     public ConfettiView()
     {
         InputTransparent = true;
         IsVisible = false;
-        BackgroundColor = Colors.Transparent;
+        Drawable = this;
     }
 
-    public Task PlaySingleGoalAsync() => PlayAsync(particleCount: 35, durationMs: 1500);
-    public Task PlayAllGoalsAsync()   => PlayAsync(particleCount: 80, durationMs: 3000);
-
-    async Task PlayAsync(int particleCount, int durationMs)
+    public Task PlayBurstAsync(Point origin)
     {
-        if (_isPlaying) return;
-        _isPlaying = true;
-        IsVisible = true;
-        Children.Clear();
+        AddBurst(origin, count: 40, durationSec: 1.4f);
+        return Task.CompletedTask;
+    }
 
-        // Read layout size; fall back to window size if not yet measured.
+    public Task PlayAllGoalsAsync()
+    {
+        AddRain(count: 80, durationSec: 3.75f);
+        return Task.CompletedTask;
+    }
+
+    // ── Burst: explosion from a point ────────────────────────────────────────
+
+    void AddBurst(Point origin, int count, float durationSec)
+    {
+        float timeOffset = _timer != null ? _elapsed : 0f;
+        float maxDelay   = durationSec * 0.15f;   // short stagger so it feels snappy
+
+        for (int i = 0; i < count; i++)
+        {
+            float w     = _rng.Next(5, 12);
+            float h     = _rng.Next(5, 12);
+            float delay = (float)(_rng.NextDouble() * maxDelay);
+            float speed = 120 + (float)(_rng.NextDouble() * 220); // 120-340 px
+            float angle = (float)(_rng.NextDouble() * Math.PI * 2);
+
+            _particles.Add(new Particle
+            {
+                IsBurst  = true,
+                OriginX  = (float)origin.X,
+                OriginY  = (float)origin.Y,
+                LaunchDX = speed * MathF.Cos(angle),
+                LaunchDY = speed * MathF.Sin(angle),   // screen Y: positive = down
+                Gravity  = 300 + (float)(_rng.NextDouble() * 250),  // 300-550 px downward pull
+                StartRot = _rng.Next(0, 360),
+                SpinDeg  = (float)((_rng.NextDouble() - 0.5) * 720),
+                Delay    = timeOffset + delay,
+                EndTime  = timeOffset + delay + Math.Max(durationSec - delay, 0.3f),
+                W        = w,
+                H        = h,
+                CornerR  = _rng.Next(0, (int)(Math.Min(w, h) / 2 + 1)),
+                Color    = Palette[_rng.Next(Palette.Length)],
+            });
+        }
+
+        EnsureTimer();
+    }
+
+    // ── Rain: particles fall from the top ────────────────────────────────────
+
+    void AddRain(int count, float durationSec)
+    {
         double pageW = Width  > 1 ? Width  : Application.Current!.Windows[0].Width;
         double pageH = Height > 1 ? Height : Application.Current!.Windows[0].Height;
 
-        var tasks = new List<Task>(particleCount);
+        float timeOffset = _timer != null ? _elapsed : 0f;
+        float maxDelay   = durationSec / 3f;
 
-        for (int i = 0; i < particleCount; i++)
+        for (int i = 0; i < count; i++)
         {
-            double w = _rng.Next(6, 14);
-            double h = _rng.Next(6, 14);
-            double startX = _rng.NextDouble() * pageW;
+            float w     = _rng.Next(6, 14);
+            float h     = _rng.Next(6, 14);
+            float delay = (float)(_rng.NextDouble() * maxDelay);
 
-            var box = new BoxView
+            _particles.Add(new Particle
             {
-                Color        = _palette[_rng.Next(_palette.Length)],
-                WidthRequest = w,
-                HeightRequest = h,
-                CornerRadius = new CornerRadius(_rng.Next(0, (int)(Math.Min(w, h) / 2 + 1))),
-                Rotation     = _rng.Next(0, 360),
-                Opacity      = 1,
-            };
-
-            AbsoluteLayout.SetLayoutBounds(box, new Rect(startX, -h, w, h));
-            Children.Add(box);
-
-            int    delay      = _rng.Next(0, durationMs / 3);
-            double driftX     = (_rng.NextDouble() - 0.5) * pageW * 0.45;
-            double fallY      = pageH + h + _rng.NextDouble() * pageH * 0.25;
-            double spinDeg    = (_rng.NextDouble() - 0.5) * 720;
-            uint   effectiveD = (uint)Math.Max(durationMs - delay, 300);
-
-            tasks.Add(AnimateParticle(box, delay, effectiveD, driftX, fallY, spinDeg));
+                IsBurst  = false,
+                StartX   = (float)(_rng.NextDouble() * pageW),
+                StartY   = -h,
+                DriftX   = (float)((_rng.NextDouble() - 0.5) * pageW * 0.45),
+                FallDist = (float)(pageH + h + _rng.NextDouble() * pageH * 0.25),
+                StartRot = _rng.Next(0, 360),
+                SpinDeg  = (float)((_rng.NextDouble() - 0.5) * 720),
+                Delay    = timeOffset + delay,
+                EndTime  = timeOffset + delay + Math.Max(durationSec - delay, 0.3f),
+                W        = w,
+                H        = h,
+                CornerR  = _rng.Next(0, (int)(Math.Min(w, h) / 2 + 1)),
+                Color    = Palette[_rng.Next(Palette.Length)],
+            });
         }
 
-        await Task.WhenAll(tasks);
-
-        Children.Clear();
-        IsVisible = false;
-        _isPlaying = false;
+        EnsureTimer();
     }
 
-    static async Task AnimateParticle(
-        BoxView box, int delay, uint duration,
-        double driftX, double fallY, double spinDeg)
-    {
-        if (delay > 0) await Task.Delay(delay);
+    // ── Timer ─────────────────────────────────────────────────────────────────
 
-        await Task.WhenAll(
-            box.TranslateToAsync(driftX, fallY, duration, Easing.SinIn),
-            box.RotateToAsync(box.Rotation + spinDeg, duration),
-            FadeOutLate(box, duration)
-        );
+    void EnsureTimer()
+    {
+        IsVisible = true;
+
+        if (_timer != null) return;
+
+        _timerStart = DateTime.UtcNow;
+        _timer = Application.Current!.Dispatcher.CreateTimer();
+        _timer.Interval = TimeSpan.FromMilliseconds(16);
+        _timer.Tick += OnTick;
+        _timer.Start();
     }
 
-    // Stays fully visible for 60% of the flight, then fades out.
-    static async Task FadeOutLate(BoxView box, uint duration)
+    void OnTick(object? sender, EventArgs e)
     {
-        await Task.Delay((int)(duration * 0.6));
-        await box.FadeToAsync(0, (uint)(duration * 0.4));
+        _elapsed  = (float)(DateTime.UtcNow - _timerStart).TotalSeconds;
+        _snapshot = [.. _particles];
+
+        Invalidate();
+
+        if (_particles.All(p => _elapsed >= p.EndTime))
+        {
+            _timer!.Stop();
+            _timer.Tick -= OnTick;
+            _timer     = null;
+            _particles.Clear();
+            _snapshot  = [];
+            IsVisible  = false;
+        }
+    }
+
+    // ── Draw ──────────────────────────────────────────────────────────────────
+
+    public void Draw(ICanvas canvas, RectF dirtyRect)
+    {
+        float elapsed  = _elapsed;
+        var   snapshot = _snapshot;
+
+        foreach (var p in snapshot)
+        {
+            float age = elapsed - p.Delay;
+            if (age <= 0) continue;
+
+            float duration = p.EndTime - p.Delay;
+            float t        = Math.Min(age / duration, 1f);
+
+            float x, y;
+
+            if (p.IsBurst)
+            {
+                // Projectile arc: constant horizontal + vertical launch, plus gravity (t^2)
+                x = p.OriginX + p.LaunchDX * t;
+                y = p.OriginY + p.LaunchDY * t + p.Gravity * t * t;
+            }
+            else
+            {
+                // Rain: SinIn easing on the fall
+                float easedT = MathF.Sin(t * MathF.PI / 2);
+                x = p.StartX + p.DriftX * t;
+                y = p.StartY + p.FallDist * easedT;
+            }
+
+            float rot   = p.StartRot + p.SpinDeg * t;
+            float alpha = p.IsBurst
+                ? Math.Max(0f, 1f - t * 1.6f)          // burst fades quickly
+                : (t < 0.6f ? 1f : (1f - t) / 0.4f);  // rain lingers then fades
+
+            canvas.SaveState();
+            canvas.FillColor = p.Color.WithAlpha(alpha);
+            canvas.Rotate(rot, x + p.W / 2, y + p.H / 2);
+            canvas.FillRoundedRectangle(x, y, p.W, p.H, p.CornerR);
+            canvas.RestoreState();
+        }
     }
 }

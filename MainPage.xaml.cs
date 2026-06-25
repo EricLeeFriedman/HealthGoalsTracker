@@ -8,6 +8,9 @@ namespace HealthGoalsTracker
     {
         public MainViewModel ViewModel;
 
+        // Exposed so GoalCard can resolve tap coordinates in the canvas draw-space.
+        public Controls.ConfettiView ConfettiView => ConfettiCanvas;
+
         public MainPage(MainViewModel viewModel)
         {
             InitializeComponent();
@@ -22,7 +25,7 @@ namespace HealthGoalsTracker
             // Unregister first so re-entering the page doesn't double-register.
             WeakReferenceMessenger.Default.Unregister<CelebrationMessage>(this);
             WeakReferenceMessenger.Default.Register<CelebrationMessage>(this, (_, msg) =>
-                MainThread.BeginInvokeOnMainThread(() => TriggerCelebration(msg.AllGoalsComplete)));
+                MainThread.BeginInvokeOnMainThread(() => TriggerCelebration(msg.AllGoalsComplete, msg.CardTapOrigin)));
 
             await ViewModel.LoadAsync();
         }
@@ -33,17 +36,18 @@ namespace HealthGoalsTracker
             WeakReferenceMessenger.Default.Unregister<CelebrationMessage>(this);
         }
 
-        async void TriggerCelebration(bool allGoalsComplete)
+        async void TriggerCelebration(bool allGoalsComplete, Point tapOrigin)
         {
             if (allGoalsComplete)
             {
-                // Fire confetti and animate the banner concurrently.
+                // All goals done: full-screen confetti rain + banner.
                 _ = ConfettiCanvas.PlayAllGoalsAsync();
                 await ShowCelebrationBannerAsync();
             }
             else
             {
-                _ = ConfettiCanvas.PlaySingleGoalAsync();
+                // Single goal: explosion burst from the tapped card.
+                _ = ConfettiCanvas.PlayBurstAsync(tapOrigin);
             }
         }
 
