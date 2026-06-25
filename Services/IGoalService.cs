@@ -29,7 +29,7 @@ public interface IGoalService
     Task UpdateUserIdAsync(string newUserId);
 
     // Keeps today's DailyGoalEntry snapshot in sync when a goal is edited or deleted mid-day.
-    Task UpdateTodayGoalSnapshotAsync(string goalId, string newName, int newPoints);
+    Task UpdateTodayGoalSnapshotAsync(string goalId, string newName, int newPoints, string iconEmoji);
     Task RemoveTodayGoalEntryAsync(string goalId);
 
     // Clears all completions for today (Reset Today action in hamburger menu).

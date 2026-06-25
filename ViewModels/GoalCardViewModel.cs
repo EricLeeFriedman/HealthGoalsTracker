@@ -13,6 +13,10 @@ public partial class GoalCardViewModel : ObservableObject
     public Func<GoalCardViewModel, Task> OnToggleRequested = _ => Task.CompletedTask;
     public Func<GoalCardViewModel, Task> OnOptionsRequested = _ => Task.CompletedTask;
 
+    // Set by GoalCard.xaml.cs immediately before invoking ToggleCommand so
+    // MainViewModel can pass the tap origin to the celebration confetti.
+    public Point TapOrigin { get; set; }
+
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(CardColor))]
     [NotifyPropertyChangedFor(nameof(CompletionIcon))]
@@ -20,6 +24,9 @@ public partial class GoalCardViewModel : ObservableObject
 
     [ObservableProperty]
     string name = string.Empty;
+
+    [ObservableProperty]
+    string iconEmoji = "⭐";
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(PointsBadgeText))]

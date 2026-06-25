@@ -54,8 +54,9 @@ public partial class MainViewModel : ObservableObject
                 Goals.Add(new GoalCardViewModel
                 {
                     Goal = goal,
-                    Entry = entry ?? new DailyGoalEntry { GoalId = goal.Id, GoalName = goal.Name, GoalPoints = goal.Points },
+                    Entry = entry ?? new DailyGoalEntry { GoalId = goal.Id, GoalName = goal.Name, IconEmoji = goal.IconEmoji, GoalPoints = goal.Points },
                     Name = goal.Name,
+                    IconEmoji = goal.IconEmoji,
                     Points = goal.Points,
                     IsCompleted = entry?.IsCompleted ?? false,
                     OnToggleRequested = ToggleGoalInternalAsync,
@@ -87,7 +88,7 @@ public partial class MainViewModel : ObservableObject
         // Only celebrate when a goal is newly checked — not when unchecking.
         if (card.IsCompleted)
         {
-            WeakReferenceMessenger.Default.Send(new CelebrationMessage(AllGoalsCompleted));
+            WeakReferenceMessenger.Default.Send(new CelebrationMessage(AllGoalsCompleted, card.TapOrigin));
 
             // Cancel nudge notifications when the first goal of the day is completed.
             bool isFirstCompletion = Goals.Count(g => g.IsCompleted) == 1;
@@ -104,12 +105,13 @@ public partial class MainViewModel : ObservableObject
     {
         var page = GetCurrentPage();
         var action = await page.DisplayActionSheetAsync(card.Name, "Cancel", null,
-            "Edit Name", "Edit Points", "Delete");
+            "Edit Name", "Edit Points", "Edit Emoji", "Delete");
 
         switch (action)
         {
             case "Edit Name":   await EditGoalNameAsync(card, page);   break;
             case "Edit Points": await EditGoalPointsAsync(card, page); break;
+            case "Edit Emoji":  await EditGoalEmojiAsync(card, page);  break;
             case "Delete":      await DeleteGoalAsync(card, page);     break;
         }
     }
@@ -136,7 +138,7 @@ public partial class MainViewModel : ObservableObject
         card.Name = newName;
         card.Goal.IsDefault = false;
         await GoalService.SaveGoalAsync(card.Goal);
-        await GoalService.UpdateTodayGoalSnapshotAsync(card.Goal.Id, newName, card.Goal.Points);
+        await GoalService.UpdateTodayGoalSnapshotAsync(card.Goal.Id, newName, card.Goal.Points, card.Goal.IconEmoji);
     }
 
     async Task EditGoalPointsAsync(GoalCardViewModel card, Page page)
@@ -160,10 +162,31 @@ public partial class MainViewModel : ObservableObject
         card.Points = newPoints;
         card.Goal.IsDefault = false;
         await GoalService.SaveGoalAsync(card.Goal);
-        await GoalService.UpdateTodayGoalSnapshotAsync(card.Goal.Id, card.Goal.Name, newPoints);
+        await GoalService.UpdateTodayGoalSnapshotAsync(card.Goal.Id, card.Goal.Name, newPoints, card.Goal.IconEmoji);
 
         var record = await GoalService.GetTodayRecordAsync();
         UpdateScore(record);
+    }
+
+    async Task EditGoalEmojiAsync(GoalCardViewModel card, Page page)
+    {
+        var newEmoji = await page.DisplayPromptAsync(
+            "Edit Emoji", "Enter an emoji for this goal",
+            initialValue: card.IconEmoji,
+            maxLength: 8,
+            keyboard: Keyboard.Default);
+
+        if (newEmoji == null) return; // user cancelled
+
+        newEmoji = newEmoji.Trim();
+        if (newEmoji.Length == 0) newEmoji = "⭐";
+        if (newEmoji == card.IconEmoji) return;
+
+        card.Goal.IconEmoji = newEmoji;
+        card.IconEmoji = newEmoji;
+        card.Goal.IsDefault = false;
+        await GoalService.SaveGoalAsync(card.Goal);
+        await GoalService.UpdateTodayGoalSnapshotAsync(card.Goal.Id, card.Goal.Name, card.Goal.Points, newEmoji);
     }
 
     async Task DeleteGoalAsync(GoalCardViewModel card, Page page)
@@ -220,9 +243,21 @@ public partial class MainViewModel : ObservableObject
             return;
         }
 
+        var emojiInput = await page.DisplayPromptAsync(
+            "New Goal", $"Enter an emoji icon for \"{name}\"",
+            initialValue: "⭐",
+            maxLength: 8,
+            keyboard: Keyboard.Default);
+
+        if (emojiInput == null) return; // user cancelled
+
+        var emoji = emojiInput.Trim();
+        if (emoji.Length == 0) emoji = "⭐";
+
         var newGoal = new Goal
         {
             Name = name,
+            IconEmoji = emoji,
             Points = pts,
             SortOrder = Goals.Count
         };

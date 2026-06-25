@@ -31,6 +31,32 @@ public class LocalGoalService : IGoalService
             await Database.CreateTableAsync<UserSettings>();
             await Database.CreateTableAsync<NotificationSchedule>();
 
+            // Schema migrations — safe to run on every launch; SQLite throws if column exists,
+            // which we intentionally swallow.
+            try { await Database.ExecuteAsync("ALTER TABLE Goal ADD COLUMN IconEmoji TEXT DEFAULT '⭐'"); } catch { }
+            try { await Database.ExecuteAsync("ALTER TABLE Goal ADD COLUMN IsWeeklyOnly INTEGER DEFAULT 0"); } catch { }
+            try { await Database.ExecuteAsync("ALTER TABLE DailyGoalEntry ADD COLUMN IconEmoji TEXT DEFAULT '⭐'"); } catch { }
+            try { await Database.ExecuteAsync("ALTER TABLE DailyGoalEntry ADD COLUMN IsWeeklyOnly INTEGER DEFAULT 0"); } catch { }
+
+            // Patch emoji on existing rows that still carry the ALTER TABLE default '⭐'.
+            // Safe to run on every launch — no-op once already updated.
+            await Database.ExecuteAsync("UPDATE Goal SET IconEmoji = '😴' WHERE IconEmoji = '⭐' AND Name = 'Slept at least 7 hours'");
+            await Database.ExecuteAsync("UPDATE Goal SET IconEmoji = '🍽️' WHERE IconEmoji = '⭐' AND Name = 'Ate less than 2200 Calories'");
+            await Database.ExecuteAsync("UPDATE Goal SET IconEmoji = '🥩' WHERE IconEmoji = '⭐' AND Name = 'Ate at least 150g of Protein'");
+            await Database.ExecuteAsync("UPDATE Goal SET IconEmoji = '🏃' WHERE IconEmoji = '⭐' AND Name = 'Movement'");
+            await Database.ExecuteAsync("UPDATE Goal SET IconEmoji = '💧' WHERE IconEmoji = '⭐' AND Name = 'Drank at least 70oz of water'");
+            await Database.ExecuteAsync("UPDATE Goal SET IconEmoji = '🧘' WHERE IconEmoji = '⭐' AND Name = 'Meditated for at least 5 min'");
+            await Database.ExecuteAsync("UPDATE Goal SET IconEmoji = '⏱️' WHERE IconEmoji = '⭐' AND Name = 'Fasted for at least 12 hours'");
+            await Database.ExecuteAsync("UPDATE Goal SET IconEmoji = '💪' WHERE IconEmoji = '⭐' AND Name = 'Strength Training'");
+            await Database.ExecuteAsync("UPDATE DailyGoalEntry SET IconEmoji = '😴' WHERE IconEmoji = '⭐' AND GoalName = 'Slept at least 7 hours'");
+            await Database.ExecuteAsync("UPDATE DailyGoalEntry SET IconEmoji = '🍽️' WHERE IconEmoji = '⭐' AND GoalName = 'Ate less than 2200 Calories'");
+            await Database.ExecuteAsync("UPDATE DailyGoalEntry SET IconEmoji = '🥩' WHERE IconEmoji = '⭐' AND GoalName = 'Ate at least 150g of Protein'");
+            await Database.ExecuteAsync("UPDATE DailyGoalEntry SET IconEmoji = '🏃' WHERE IconEmoji = '⭐' AND GoalName = 'Movement'");
+            await Database.ExecuteAsync("UPDATE DailyGoalEntry SET IconEmoji = '💧' WHERE IconEmoji = '⭐' AND GoalName = 'Drank at least 70oz of water'");
+            await Database.ExecuteAsync("UPDATE DailyGoalEntry SET IconEmoji = '🧘' WHERE IconEmoji = '⭐' AND GoalName = 'Meditated for at least 5 min'");
+            await Database.ExecuteAsync("UPDATE DailyGoalEntry SET IconEmoji = '⏱️' WHERE IconEmoji = '⭐' AND GoalName = 'Fasted for at least 12 hours'");
+            await Database.ExecuteAsync("UPDATE DailyGoalEntry SET IconEmoji = '💪' WHERE IconEmoji = '⭐' AND GoalName = 'Strength Training'");
+
             // Composite unique index: one DailyRecord per user per day.
             await Database.ExecuteAsync(
                 "CREATE UNIQUE INDEX IF NOT EXISTS IX_DailyRecord_UserDate ON DailyRecord (UserId, Date)");
@@ -121,7 +147,9 @@ public class LocalGoalService : IGoalService
                 DailyRecordId = record.Id,
                 GoalId = g.Id,
                 GoalName = g.Name,
-                GoalPoints = g.Points
+                IconEmoji = g.IconEmoji,
+                GoalPoints = g.Points,
+                IsWeeklyOnly = g.IsWeeklyOnly
             }).ToList();
 
             await Database.InsertAllAsync(entries);
@@ -143,7 +171,9 @@ public class LocalGoalService : IGoalService
                 DailyRecordId = record.Id,
                 GoalId = g.Id,
                 GoalName = g.Name,
-                GoalPoints = g.Points
+                IconEmoji = g.IconEmoji,
+                GoalPoints = g.Points,
+                IsWeeklyOnly = g.IsWeeklyOnly
             }).ToList();
             await Database.InsertAllAsync(newEntries);
 
@@ -266,7 +296,7 @@ public class LocalGoalService : IGoalService
 
     // Updates today's DailyGoalEntry snapshot when the user renames or re-points a goal.
     // Recalculates DailyRecord totals if the point value changed.
-    public async Task UpdateTodayGoalSnapshotAsync(string goalId, string newName, int newPoints)
+    public async Task UpdateTodayGoalSnapshotAsync(string goalId, string newName, int newPoints, string iconEmoji)
     {
         await InitializeAsync();
         var todayKey = DateOnly.FromDateTime(DateTime.Today).ToString("yyyy-MM-dd");
@@ -283,6 +313,7 @@ public class LocalGoalService : IGoalService
 
         bool pointsChanged = entry.GoalPoints != newPoints;
         entry.GoalName = newName;
+        entry.IconEmoji = iconEmoji;
         entry.GoalPoints = newPoints;
         entry.UpdatedAt = DateTime.UtcNow;
         await Database.UpdateAsync(entry);
@@ -364,12 +395,14 @@ public class LocalGoalService : IGoalService
         {
             var defaults = new List<Goal>
             {
-                new() { Name = "Slept at least 7 hours",         Points = 3, SortOrder = 0, IsDefault = true },
-                new() { Name = "Ate less than 2200 Calories",    Points = 3, SortOrder = 1, IsDefault = true },
-                new() { Name = "Fasted for at least 12 hours",   Points = 2, SortOrder = 2, IsDefault = true },
-                new() { Name = "Drank at least 70oz of water",   Points = 2, SortOrder = 3, IsDefault = true },
-                new() { Name = "Ate at least 150g of Protein",   Points = 2, SortOrder = 4, IsDefault = true },
-                new() { Name = "Meditated for at least 5 min",   Points = 1, SortOrder = 5, IsDefault = true },
+                new() { Name = "Slept at least 7 hours",       IconEmoji = "😴", Points = 3, SortOrder = 0, IsDefault = true },
+                new() { Name = "Ate less than 2200 Calories",  IconEmoji = "🍽️", Points = 3, SortOrder = 1, IsDefault = true },
+                new() { Name = "Ate at least 150g of Protein", IconEmoji = "🥩", Points = 3, SortOrder = 2, IsDefault = true },
+                new() { Name = "Movement",                      IconEmoji = "🏃", Points = 2, SortOrder = 3, IsDefault = true },
+                new() { Name = "Drank at least 70oz of water", IconEmoji = "💧", Points = 1, SortOrder = 4, IsDefault = true },
+                new() { Name = "Meditated for at least 5 min", IconEmoji = "🧘", Points = 1, SortOrder = 5, IsDefault = true },
+                new() { Name = "Fasted for at least 12 hours", IconEmoji = "⏱️", Points = 1, SortOrder = 6, IsDefault = true },
+                new() { Name = "Strength Training",             IconEmoji = "💪", Points = 0, SortOrder = 7, IsDefault = true, IsWeeklyOnly = true },
             };
             await Database.InsertAllAsync(defaults);
         }

@@ -29,19 +29,16 @@
                     Padding="0"
                     Command="{Binding OpenOptionsCommand}" />
 
-            <!-- Centre: checkmark (when done) + goal name -->
+            <!-- Centre: emoji + goal name -->
             <VerticalStackLayout Grid.Row="1"
                                  VerticalOptions="Center"
                                  HorizontalOptions="Center"
                                  Spacing="6">
-                <Label Text="✓"
-                       IsVisible="{Binding IsCompleted}"
-                       FontSize="34"
-                       FontAttributes="Bold"
-                       TextColor="White"
+                <Label Text="{Binding IconEmoji}"
+                       FontSize="36"
                        HorizontalOptions="Center" />
                 <Label Text="{Binding Name}"
-                       FontSize="14"
+                       FontSize="13"
                        FontAttributes="Bold"
                        TextColor="White"
                        HorizontalOptions="Center"
