@@ -33,7 +33,7 @@ namespace HealthGoalsTracker
                     fonts.AddFont("OpenSans-Semibold.ttf", "OpenSansSemibold");
                 });
 
-            var dbPath = Path.Combine(FileSystem.AppDataDirectory, "healthgoals.db3");
+            var dbPath = Path.Combine(FileSystem.AppDataDirectory, "healthgoals_v2.db3");
             builder.Services.AddSingleton<IGoalService>(_ => new LocalGoalService(dbPath));
             builder.Services.AddSingleton<IHealthNotificationService, NotificationScheduler>();
             builder.Services.AddSingleton<MainViewModel>();
