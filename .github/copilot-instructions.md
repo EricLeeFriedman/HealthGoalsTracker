@@ -2,24 +2,35 @@
 
 ## What We Are Building
 
-HealthGoalsTracker is a .NET MAUI app (Android primary, Windows for dev) that helps users track six daily health goals. Each goal is represented as a tappable card that turns green on completion and triggers a confetti celebration. Completing all six triggers a bigger celebration. Goals reset every day at midnight.
+HealthGoalsTracker is a .NET MAUI app (Android primary, Windows for dev) that helps users track seven daily health goals plus one weekly-only goal (Strength Training). Each goal is represented as a tappable card that turns green on completion and triggers a confetti celebration. Completing all daily goals triggers a bigger celebration. Goals reset every day at midnight.
+
+The app also tracks body measurements (weight + body fat %) over time with a SkiaSharp dual-axis line chart.
 
 Users sign in with Google (via Microsoft Entra External ID). Their data is stored locally (SQLite, offline-first) and synced to an Azure Cosmos DB backend through Azure Functions. This allows seamless cross-device access.
 
 ---
 
-## The Six Default Health Goals
+## Default Goals
 
-| # | Goal | Default Points |
-|---|------|---------------|
-| 1 | Slept at least 7 hours | 3 |
-| 2 | Ate less than 2200 Calories | 3 |
-| 3 | Fasted for at least 12 hours | 2 |
-| 4 | Drank at least 70oz of water | 2 |
-| 5 | Ate at least 150g of Protein | 2 |
-| 6 | Meditated for at least 5 minutes | 1 |
+### Daily Goals (14 pts possible per day)
 
-Goals are fully user-editable: rename, change points, delete, or add new ones. Each box displays an inline edit/delete option. An "Add Goal" button lives on the main page.
+| # | Goal | Emoji | Points |
+|---|------|-------|--------|
+| 1 | Slept at least 7 hours | 😴 | 3 |
+| 2 | Ate less than 2200 Calories | 🍽️ | 3 |
+| 3 | Ate at least 150g of Protein | 🥩 | 3 |
+| 4 | Movement | 🏃 | 2 |
+| 5 | Drank at least 70oz of water | 💧 | 1 |
+| 6 | Meditated for at least 5 minutes | 🧘 | 1 |
+| 7 | Fasted for at least 12 hours | ⏱️ | 1 |
+
+### Weekly Goal (not part of daily score)
+
+| # | Goal | Emoji | Notes |
+|---|------|-------|-------|
+| 8 | Strength Training | 💪 | `IsWeeklyOnly = true`; tap once on each training day; up to 3 sessions per week count toward the weekly score |
+
+Goals are fully user-editable: rename, change points, delete, add new ones, or toggle `IsWeeklyOnly`. Each card has an inline edit/delete menu. An "Add Goal" button lives on the main page.
 
 ---
 
@@ -36,7 +47,7 @@ Goals are fully user-editable: rename, change points, delete, or add new ones. E
 | IaC | Azure Bicep |
 | CI/CD | GitHub Actions |
 | MVVM | CommunityToolkit.Mvvm |
-| Animations | SkiaSharp (confetti) or Lottie (via SkiaSharp.Extended.UI.Maui) |
+| Animations | Pure MAUI `AbsoluteLayout`+`BoxView` for confetti; SkiaSharp for measurement line chart |
 
 ---
 
@@ -44,38 +55,30 @@ Goals are fully user-editable: rename, change points, delete, or add new ones. E
 
 ```
 HealthGoalsTracker/
-├── Models/               # Plain data classes (Goal, DailyRecord, UserSettings, NotificationSchedule)
+├── Models/               # Plain data classes (Goal, DailyRecord, DailyGoalEntry, UserSettings, NotificationSchedule, BodyMeasurement)
 ├── ViewModels/           # MVVM ViewModels using CommunityToolkit.Mvvm
 │   ├── MainViewModel.cs
 │   ├── HistoryViewModel.cs
-│   └── SettingsViewModel.cs
+│   ├── MeasurementsViewModel.cs
+│   └── NotificationsViewModel.cs
 ├── Views/                # XAML pages
-│   ├── MainPage.xaml
 │   ├── HistoryPage.xaml
-│   └── SettingsPage.xaml
+│   ├── MeasurementsPage.xaml
+│   └── NotificationsPage.xaml
 ├── Controls/             # Reusable XAML controls
-│   ├── GoalCard.xaml     # Single goal box — red/green, tap-to-complete, confetti trigger
-│   └── ConfettiView.xaml # SkiaSharp confetti overlay
+│   ├── GoalCard.xaml     # Single goal box — red/green, emoji icon, weekly badge, tap-to-complete
+│   └── ConfettiView.cs   # Pure MAUI particle confetti (no SkiaSharp)
 ├── Services/
-│   ├── IGoalService.cs         # Interface for goal CRUD + daily state
-│   ├── LocalGoalService.cs     # SQLite implementation (offline-first, always used)
-│   ├── CloudSyncService.cs     # Azure Functions API client — syncs when online
-│   ├── AuthService.cs          # MSAL Google sign-in via Entra External ID
-│   └── NotificationService.cs  # Interface + platform implementations
+│   ├── IGoalService.cs           # Interface for goal CRUD + daily/weekly state
+│   ├── LocalGoalService.cs       # SQLite implementation (offline-first, always used)
+│   ├── IMeasurementService.cs    # Interface for body measurement CRUD
+│   ├── LocalMeasurementService.cs# SQLite implementation for body measurements
+│   ├── CloudSyncService.cs       # Azure Functions API client — syncs when online
+│   ├── AuthService.cs            # MSAL Google sign-in via Entra External ID
+│   └── IHealthNotificationService.cs / NotificationScheduler.cs
 ├── Platforms/
 │   └── Android/
-│       └── NotificationService.cs   # FCM push notifications
 └── infra/                # Azure Bicep IaC templates
-    ├── main.bicep
-    ├── cosmos.bicep
-    ├── functions.bicep
-    └── notification-hubs.bicep
-
-Backend (separate repo or /backend folder):
-└── HealthGoalsTracker.Functions/
-    ├── GoalsApi.cs        # CRUD for goals and daily records
-    ├── SyncApi.cs         # Batch sync endpoint
-    └── NotificationApi.cs # Trigger push notifications
 ```
 
 ---
@@ -98,64 +101,99 @@ public class Goal
 {
     public string Id { get; set; }         // GUID
     public string Name { get; set; }
+    public string IconEmoji { get; set; }  // e.g. "😴" — shown on GoalCard
     public int Points { get; set; }
     public int SortOrder { get; set; }
     public bool IsDefault { get; set; }    // false once user has edited it
+    public bool IsWeeklyOnly { get; set; } // true = counts toward weekly score only (e.g. Strength Training)
 }
 
 public class DailyRecord
 {
     public string Id { get; set; }         // GUID
     public string UserId { get; set; }
-    public DateOnly Date { get; set; }
-    public List<string> CompletedGoalIds { get; set; }  // Goal IDs completed that day
-    public int TotalPointsEarned { get; set; }
-    public int TotalPointsPossible { get; set; }
+    public string Date { get; set; }       // "yyyy-MM-dd"
+    public int TotalPointsEarned { get; set; }    // sum of completed non-weekly goals only
+    public int TotalPointsPossible { get; set; }  // sum of all non-weekly goal points (= 14 for defaults)
+    public DateTime UpdatedAt { get; set; }
 }
 
-public class UserSettings
-{
-    public string UserId { get; set; }
-    public List<NotificationSchedule> Notifications { get; set; }
-    public bool NotificationsEnabled { get; set; }
-}
-
-public class NotificationSchedule
+public class DailyGoalEntry
 {
     public string Id { get; set; }
-    public NotificationType Type { get; set; }
-    public TimeOnly Time { get; set; }
-    public bool IsEnabled { get; set; }
+    public string DailyRecordId { get; set; }
+    public string GoalId { get; set; }
+    public string GoalName { get; set; }   // snapshot
+    public string IconEmoji { get; set; }  // snapshot
+    public int GoalPoints { get; set; }    // snapshot
+    public bool IsWeeklyOnly { get; set; } // snapshot
+    public bool IsCompleted { get; set; }
+    public DateTime UpdatedAt { get; set; }
 }
 
-public enum NotificationType
+public class BodyMeasurement
 {
-    NudgeIfNoGoalsCompleted,   // Noon + 4pm defaults
-    DailySummary,              // 9pm default
-    MorningRecap               // 7am default (recap of yesterday)
+    public string Id { get; set; }              // GUID
+    public string UserId { get; set; }
+    public string Date { get; set; }            // "yyyy-MM-dd"
+    public double? WeightLbs { get; set; }
+    public double? BodyFatPercent { get; set; }
+    public string? Notes { get; set; }
+    public DateTime UpdatedAt { get; set; }
 }
+
+public class UserSettings { /* unchanged */ }
+public class NotificationSchedule { /* unchanged */ }
+public enum NotificationType { /* unchanged */ }
 ```
+
+---
+
+## Scoring Formula
+
+### Daily Score
+`TotalPointsEarned / TotalPointsPossible` where both values only include **non-weekly** (`IsWeeklyOnly = false`) goals.  
+Default maximum: **14 pts** (Sleep 3 + Calories 3 + Protein 3 + Movement 2 + Water 1 + Meditate 1 + Fast 1).
+
+### Weekly Score
+```
+weeklyAvg       = sum(TotalPointsEarned for days with data this Mon–Sun) / count(days with data)
+trainingBonus   = min(strength training sessions logged Mon–Sun, 3)
+weeklyScore     = weeklyAvg + trainingBonus          // max = 17
+weeklyPercent   = weeklyScore / 17 × 100%
+```
+- "Days with data" = days that have a `DailyRecord` row (user opened the app that day).
+- Weeks that haven't ended yet divide only by the number of days elapsed with data.
+- The weekly percentage is the canonical display format for weekly performance.
 
 ---
 
 ## Daily Goal Flow
 
 1. On app launch, load today's `DailyRecord` from SQLite (keyed by `DateOnly.FromDateTime(DateTime.Today)`).
-2. Render one `GoalCard` per `Goal` — green if `Goal.Id` is in `DailyRecord.CompletedGoalIds`, red otherwise.
-3. On tap: add/remove goal ID from `CompletedGoalIds`, update `TotalPointsEarned`, save locally, trigger confetti, then sync to cloud async.
-4. At midnight (detected on next app foreground), create a new `DailyRecord` for the new day.
+2. Render one `GoalCard` per `Goal` — green if completed, red/inactive otherwise.
+3. On tap (daily goal): add/remove from completed set, update `TotalPointsEarned`, save locally, trigger confetti, then sync to cloud async.
+4. On tap (weekly-only goal): toggle completed for today, does NOT change `TotalPointsEarned`/`TotalPointsPossible`, still syncs.
+5. At midnight (detected on next app foreground), create a new `DailyRecord` for the new day.
 
 ---
 
 ## Goal Cards (UI)
 
 Each `GoalCard` shows:
-- Goal name
-- Points value
+- **Emoji icon** (large, left side) + goal name
+- Points value (hidden for `IsWeeklyOnly` goals)
+- **"Weekly"** badge for `IsWeeklyOnly` goals
 - Completion status (red = incomplete, green = complete)
-- A long-press or context menu (⋯ icon) to: **Edit Name** | **Edit Points** | **Delete Goal**
+- A context menu (⋯ icon) to: **Edit Name** | **Edit Points** | **Toggle Weekly-Only** | **Delete Goal**
 
 The main page has an **"+ Add Goal"** button below the card grid.
+
+## Main Page Header
+
+Shows two score lines:
+- **"Today: 8 / 14"** — daily points earned / possible (non-weekly goals only)
+- **"This week: 74%"** — weekly score percentage (see Scoring Formula)
 
 ---
 
@@ -169,7 +207,8 @@ The main page has an **"+ Add Goal"** button below the card grid.
 ## Hamburger Menu (Shell Flyout)
 
 Use MAUI Shell's built-in flyout. Menu items:
-- **History** → HistoryPage (calendar heatmap + daily breakdown)
+- **History** → HistoryPage (calendar heatmap + daily breakdown + weekly score for selected week)
+- **Measurements** → MeasurementsPage (weight + BF% entry form + SkiaSharp dual-axis line chart)
 - **Notifications** → Notification schedule editor (enable/disable, edit times per NotificationType)
 - **Account** → Sign in / Sign out (Google via MSAL)
 - **Reset Today** → Clears today's DailyRecord (with confirmation dialog)
@@ -194,9 +233,16 @@ Notifications are scheduled locally on the device using platform APIs (no server
 
 ## Historical Data View
 
-- **Calendar heatmap**: full-month calendar where each day cell is color-coded by completion percentage.
+- **Calendar heatmap**: full-month calendar where each day cell is color-coded by daily completion percentage.
   - 0% = red, 50% = yellow, 100% = green, future = gray, no data = empty.
-- **Tap a day** → expand a breakdown of which goals were/weren't completed and the points earned.
+- **Tap a day** → expand a breakdown showing which goals were/weren't completed, points earned, and the **weekly score % for that week**.
+
+## Body Measurements (MeasurementsPage)
+
+- Entry form: date (defaults to today), weight in lbs (optional), body fat % (optional), optional notes.
+- Does not need to be logged daily — just when the user weighs in.
+- History display: **SkiaSharp dual-axis line chart** — weight on left Y-axis, BF% on right Y-axis, both plotted over time on the same chart.
+- Backed by `BodyMeasurement` SQLite table via `LocalMeasurementService`.
 
 ---
 
@@ -222,8 +268,13 @@ Deploy via Bicep (`/infra/main.bicep`). GitHub Actions deploy on push to `main`.
 |----------|--------|
 | Cross-device login | Google sign-in via Microsoft Entra External ID (MSAL.NET) |
 | Data backup | Offline-first SQLite; async sync to Cosmos DB via Azure Functions |
-| Historical data style | Calendar heatmap + per-day goal breakdown |
+| Historical data style | Calendar heatmap + per-day goal breakdown + weekly score for selected week |
 | Target platforms | Android only (Windows included for dev convenience; no iOS/Mac) |
 | Push notification implementation | Local device scheduling (no server push for simple schedules) |
 | Daily reset time | Midnight local device time |
-| Points system | Each goal has an editable point value; end-of-day score = earned/possible × 100% |
+| Points system | Daily: non-weekly goals only, max 14 pts. Weekly: avg daily + training bonus, max 17, shown as % |
+| Weekly-only goals | Any goal can be toggled `IsWeeklyOnly`; tapping logs one session; up to 3 strength sessions count |
+| Weekly score divisor | Divide by days-with-data only (not always 7) so incomplete weeks score fairly |
+| Goal card visuals | Each goal has an `IconEmoji`; weekly-only goals show a "Weekly" badge |
+| Body measurement tracking | Dedicated Measurements page (hamburger); SkiaSharp dual-axis chart; no daily requirement |
+| Chart library | Raw SkiaSharp (already a dependency via confetti) — no new NuGet packages |

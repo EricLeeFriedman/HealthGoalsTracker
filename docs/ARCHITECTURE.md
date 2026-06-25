@@ -10,14 +10,16 @@ HealthGoalsTracker is an offline-first .NET MAUI app for **Android** (+ Windows 
 │                                 │
 │  MainPage (GoalCards)           │
 │  HistoryPage (Calendar Heatmap) │
-│  SettingsPage (Notifs/Account)  │
+│  MeasurementsPage (Weight/BF%)  │
+│  NotificationsPage              │
 │                                 │
 │  ViewModels (CommunityToolkit)  │
 │  Services:                      │
 │    LocalGoalService (SQLite)  ◄─┼── Always active (offline-first)
+│    LocalMeasurementService    ◄─┼── Body measurements (SQLite)
 │    CloudSyncService           ◄─┼── Best-effort, async
 │    AuthService (MSAL)         ◄─┼── Google via Entra External ID
-│    NotificationService        ◄─┼── Local platform scheduling
+│    NotificationScheduler      ◄─┼── Local platform scheduling
 └────────────┬────────────────────┘
              │ HTTPS (when online + signed in)
              ▼
@@ -89,13 +91,12 @@ User taps "Sign in with Google"
 
 ```
 /HealthGoalsTracker          ← MAUI app
-  /Models
+  /Models                    ← Goal, DailyRecord, DailyGoalEntry, BodyMeasurement, UserSettings
   /ViewModels
-  /Views
-  /Controls
-  /Services
+  /Views                     ← HistoryPage, MeasurementsPage, NotificationsPage
+  /Controls                  ← GoalCard (emoji + weekly badge), ConfettiView
+  /Services                  ← IGoalService, LocalGoalService, IMeasurementService, LocalMeasurementService
   /Platforms/Android
-  /Platforms/iOS
   /infra                     ← Bicep IaC
 
 /HealthGoalsTracker.Functions  ← Azure Functions backend (C#, isolated worker)
