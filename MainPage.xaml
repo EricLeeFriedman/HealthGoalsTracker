@@ -21,13 +21,20 @@
                    FontAttributes="Bold" />
         </VerticalStackLayout>
 
-        <!-- Goal list + loading indicator in the same slot -->
+        <!-- Goal grid + loading indicator in the same slot -->
         <Grid Grid.Row="1">
             <CollectionView ItemsSource="{Binding Goals}"
-                            SelectionMode="None">
+                            SelectionMode="None"
+                            Margin="12,8">
+                <CollectionView.ItemsLayout>
+                    <GridItemsLayout Orientation="Vertical"
+                                     Span="2"
+                                     HorizontalItemSpacing="10"
+                                     VerticalItemSpacing="10" />
+                </CollectionView.ItemsLayout>
                 <CollectionView.ItemTemplate>
                     <DataTemplate x:DataType="vm:GoalCardViewModel">
-                        <controls:GoalCard Margin="16,6" />
+                        <controls:GoalCard HeightRequest="160" />
                     </DataTemplate>
                 </CollectionView.ItemTemplate>
                 <CollectionView.EmptyView>

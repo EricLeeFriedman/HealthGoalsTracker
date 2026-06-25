@@ -11,47 +11,53 @@
         <Border.StrokeShape>
             <RoundRectangle CornerRadius="16" />
         </Border.StrokeShape>
+        <Border.GestureRecognizers>
+            <TapGestureRecognizer Tapped="OnCardTapped" />
+        </Border.GestureRecognizers>
 
-        <Grid ColumnDefinitions="Auto,*,Auto" Padding="18,16">
-            <Grid.GestureRecognizers>
-                <TapGestureRecognizer Tapped="OnCardTapped" />
-            </Grid.GestureRecognizers>
+        <Grid RowDefinitions="Auto,*,Auto" Padding="10,8,10,12">
 
-            <!-- Checkmark indicator -->
-            <Label Grid.Column="0"
-                   Text="{Binding CompletionIcon}"
-                   FontSize="22"
-                   TextColor="White"
-                   VerticalOptions="Center"
-                   WidthRequest="28" />
-
-            <!-- Goal name + points -->
-            <VerticalStackLayout Grid.Column="1"
-                                 Spacing="3"
-                                 VerticalOptions="Center"
-                                 Margin="4,0,0,0">
-                <Label Text="{Binding Name}"
-                       FontSize="16"
-                       FontAttributes="Bold"
-                       TextColor="White"
-                       LineBreakMode="WordWrap" />
-                <Label Text="{Binding PointsBadgeText}"
-                       FontSize="13"
-                       TextColor="White"
-                       Opacity="0.85" />
-            </VerticalStackLayout>
-
-            <!-- Options button -->
-            <Button Grid.Column="2"
+            <!-- Options button — top right -->
+            <Button Grid.Row="0"
                     Text="•••"
-                    FontSize="14"
+                    FontSize="13"
                     TextColor="White"
                     BackgroundColor="Transparent"
-                    VerticalOptions="Center"
-                    WidthRequest="44"
-                    HeightRequest="44"
+                    HorizontalOptions="End"
+                    WidthRequest="36"
+                    HeightRequest="30"
                     Padding="0"
                     Command="{Binding OpenOptionsCommand}" />
+
+            <!-- Centre: checkmark (when done) + goal name -->
+            <VerticalStackLayout Grid.Row="1"
+                                 VerticalOptions="Center"
+                                 HorizontalOptions="Center"
+                                 Spacing="6">
+                <Label Text="✓"
+                       IsVisible="{Binding IsCompleted}"
+                       FontSize="34"
+                       FontAttributes="Bold"
+                       TextColor="White"
+                       HorizontalOptions="Center" />
+                <Label Text="{Binding Name}"
+                       FontSize="14"
+                       FontAttributes="Bold"
+                       TextColor="White"
+                       HorizontalOptions="Center"
+                       HorizontalTextAlignment="Center"
+                       LineBreakMode="WordWrap"
+                       MaxLines="3" />
+            </VerticalStackLayout>
+
+            <!-- Bottom: points badge -->
+            <Label Grid.Row="2"
+                   Text="{Binding PointsBadgeText}"
+                   FontSize="12"
+                   TextColor="White"
+                   Opacity="0.8"
+                   HorizontalOptions="Center" />
+
         </Grid>
     </Border>
 
