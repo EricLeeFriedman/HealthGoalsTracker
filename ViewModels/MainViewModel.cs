@@ -14,22 +14,22 @@ public partial class MainViewModel : ObservableObject
     public IHealthNotificationService NotificationService;
 
     [ObservableProperty]
-    ObservableCollection<GoalCardViewModel> goals = [];
+    ObservableCollection<GoalCardViewModel> _goals = [];
 
     [ObservableProperty]
-    string dailyScoreText = "—";
+    string _dailyScoreText = "—";
 
     [ObservableProperty]
-    string weeklyScoreText = "—";
+    string _weeklyScoreText = "—";
 
     [ObservableProperty]
-    string todayDateText = string.Empty;
+    string _todayDateText = string.Empty;
 
     [ObservableProperty]
-    bool allGoalsCompleted;
+    bool _allGoalsCompleted;
 
     [ObservableProperty]
-    bool isLoading;
+    bool _isLoading;
 
     public MainViewModel(IGoalService goalService, IHealthNotificationService notificationService)
     {

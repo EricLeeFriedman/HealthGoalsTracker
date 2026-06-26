@@ -20,21 +20,21 @@ public partial class GoalCardViewModel : ObservableObject
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(CardColor))]
     [NotifyPropertyChangedFor(nameof(CompletionIcon))]
-    bool isCompleted;
+    bool _isCompleted;
 
     [ObservableProperty]
-    string name = string.Empty;
+    string _name = string.Empty;
 
     [ObservableProperty]
-    string iconEmoji = "⭐";
-
-    [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(PointsBadgeText))]
-    bool isWeeklyOnly;
+    string _iconEmoji = "⭐";
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(PointsBadgeText))]
-    int points;
+    bool _isWeeklyOnly;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(PointsBadgeText))]
+    int _points;
 
     public Color CardColor => IsCompleted
         ? Color.FromArgb("#43A047")   // green-600
