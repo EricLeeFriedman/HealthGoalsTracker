@@ -18,21 +18,11 @@ This file lives in the repo so any agent or developer on any machine can pick up
 | 8 | **Emoji goal cards + updated defaults** — `IconEmoji` + `IsWeeklyOnly` added to models; new 7+1 default goals with emojis and correct points; schema migration via `ALTER TABLE ADD COLUMN` + `UPDATE` patches for existing rows; `GoalCard` tile shows large emoji; Edit Emoji option; db bumped to `healthgoals_v2.db3` for clean reseed | `19f4750` + `cb53b80` |
 | 8b | **Confetti animation overhaul** — `ConfettiView` rewritten as `GraphicsView`+`IDrawable` (eliminates first-frame hitch); burst explosion from tapped card center using projectile arc physics; rain effect for all-goals-complete; concurrent burst support; 80% fall speed; canvas-relative Y coordinate fix; CRLF enforced | `3d1107e` + `5b90886` |
 | 9+10 | **Weekly scoring + main page header** — `GetWeeklyScoreAsync` (avg daily pts over days-with-data + min(training,3), max 17, as %); daily score correctly excludes `IsWeeklyOnly` goals; `GoalCard` shows `🗓 Weekly` badge; "Toggle Weekly-Only" in options menu; `AddGoalAsync` prompts for weekly-only; header shows `Today: X / 14` + `This week: 74%` | `698a3e2` |
+| 10b+11 | **History weekly score + measurements** — History day details now show weekly score % for the selected week; added `BodyMeasurement`, `IMeasurementService`, `LocalMeasurementService`, `MeasurementsViewModel`, `MeasurementsPage`, dual-axis chart control, and Shell flyout navigation for measurements | `working tree` |
 
 ---
 
 ## Remaining Phases
-
-### Phase 11 — Body Measurements Page
-- New `BodyMeasurement` model (Id, UserId, Date "yyyy-MM-dd", WeightLbs?, BodyFatPercent?, Notes?, UpdatedAt)
-- New `IMeasurementService` + `LocalMeasurementService` (SQLite)
-- Register both in `MauiProgram.cs`
-- New `MeasurementsViewModel` + `MeasurementsPage.xaml`:
-  - Entry form: date (defaults to today), weight (lbs), BF% — both optional; save button
-  - Recent entries list
-  - SkiaSharp dual-axis line chart (weight left axis, BF% right axis) — no new NuGet packages
-- Add **Measurements** item to the Shell flyout (`AppShell.xaml`)
-- **Remaining from Phase 10**: update `HistoryViewModel` + `HistoryPage.xaml` to show weekly score % in the day-breakdown panel
 
 ### Phase 12 — Authentication ⛔ NEEDS USER INTERVENTION
 **What to do before starting:**

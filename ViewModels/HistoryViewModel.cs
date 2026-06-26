@@ -44,6 +44,9 @@ namespace HealthGoalsTracker.ViewModels
         [ObservableProperty]
         string _selectedDaySummary = "";
 
+        [ObservableProperty]
+        string _selectedWeekScoreText = "";
+
         public bool HasSelectedDay => SelectedDay != null && !SelectedDay.IsEmpty && !SelectedDay.IsFuture;
 
         public string MonthLabel => DisplayMonth.ToString("MMMM yyyy");
@@ -67,6 +70,7 @@ namespace HealthGoalsTracker.ViewModels
             DisplayMonth = DisplayMonth.AddMonths(-1);
             SelectedDay = null;
             SelectedDayGoals.Clear();
+            SelectedWeekScoreText = "";
             await BuildCalendarAsync();
         }
 
@@ -80,6 +84,7 @@ namespace HealthGoalsTracker.ViewModels
             DisplayMonth = next;
             SelectedDay = null;
             SelectedDayGoals.Clear();
+            SelectedWeekScoreText = "";
             await BuildCalendarAsync();
         }
 
@@ -97,6 +102,7 @@ namespace HealthGoalsTracker.ViewModels
                 // Tap same day again → collapse
                 SelectedDay = null;
                 SelectedDayGoals.Clear();
+                SelectedWeekScoreText = "";
                 return;
             }
 
@@ -148,6 +154,10 @@ namespace HealthGoalsTracker.ViewModels
         {
             SelectedDayGoals.Clear();
 
+            var weekStart = GetMonday(day.Date);
+            var (_, weeklyPercent) = await GoalService.GetWeeklyScoreAsync("local", weekStart);
+            SelectedWeekScoreText = $"This week: {(int)Math.Round(weeklyPercent)}%";
+
             var record = await GoalService.GetRecordForDateAsync(day.Date);
             if (record == null)
             {
@@ -170,6 +180,12 @@ namespace HealthGoalsTracker.ViewModels
                     IsCompleted = entry.IsCompleted
                 });
             }
+        }
+
+        static DateOnly GetMonday(DateOnly date)
+        {
+            int daysFromMonday = ((int)date.DayOfWeek + 6) % 7;
+            return date.AddDays(-daysFromMonday);
         }
     }
 }

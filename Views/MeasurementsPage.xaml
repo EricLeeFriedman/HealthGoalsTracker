@@ -1,0 +1,116 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:HealthGoalsTracker.ViewModels"
+             xmlns:models="clr-namespace:HealthGoalsTracker.Models"
+             xmlns:controls="clr-namespace:HealthGoalsTracker.Controls"
+             x:Class="HealthGoalsTracker.Views.MeasurementsPage"
+             x:Name="PageRoot"
+             x:DataType="vm:MeasurementsViewModel"
+             Title="Measurements"
+             BackgroundColor="#F5F5F5">
+
+    <ScrollView>
+        <VerticalStackLayout Spacing="12" Padding="16,12,16,20">
+
+            <Border Padding="16"
+                    StrokeShape="RoundRectangle 12"
+                    BackgroundColor="White"
+                    Stroke="#E0E0E0"
+                    StrokeThickness="1">
+                <VerticalStackLayout Spacing="12">
+                    <Label Text="Log a body measurement"
+                           FontSize="18"
+                           FontAttributes="Bold" />
+
+                    <DatePicker Date="{Binding EntryDate}" />
+
+                    <Grid ColumnDefinitions="*,*" ColumnSpacing="10">
+                        <Entry Grid.Column="0"
+                               Text="{Binding WeightText}"
+                               Placeholder="Weight (lbs)"
+                               Keyboard="Numeric" />
+                        <Entry Grid.Column="1"
+                               Text="{Binding BodyFatText}"
+                               Placeholder="Body Fat %"
+                               Keyboard="Numeric" />
+                    </Grid>
+
+                    <Editor Text="{Binding Notes}"
+                            Placeholder="Optional notes"
+                            AutoSize="TextChanges"
+                            MinimumHeightRequest="90" />
+
+                    <Button Text="Save Measurement"
+                            Command="{Binding SaveMeasurementCommand}"
+                            BackgroundColor="#512BD4"
+                            TextColor="White"
+                            CornerRadius="12"
+                            HeightRequest="48"
+                            FontAttributes="Bold" />
+                </VerticalStackLayout>
+            </Border>
+
+            <Border Padding="16"
+                    StrokeShape="RoundRectangle 12"
+                    BackgroundColor="White"
+                    Stroke="#E0E0E0"
+                    StrokeThickness="1">
+                <VerticalStackLayout Spacing="10">
+                    <Label Text="Trend"
+                           FontSize="18"
+                           FontAttributes="Bold" />
+                    <controls:MeasurementsChartView ItemsSource="{Binding ChartMeasurements}"
+                                                    HeightRequest="280" />
+                </VerticalStackLayout>
+            </Border>
+
+            <VerticalStackLayout Spacing="8">
+                <Label Text="Recent Entries"
+                       FontSize="18"
+                       FontAttributes="Bold" />
+                <Label Text="Tap an entry to load it back into the form."
+                       FontSize="12"
+                       TextColor="#777777"
+                       IsVisible="{Binding HasMeasurements}" />
+                <Label Text="No measurements saved yet."
+                       FontSize="13"
+                       TextColor="#777777"
+                       IsVisible="{Binding NoMeasurements}" />
+
+                <VerticalStackLayout Spacing="10"
+                                     BindableLayout.ItemsSource="{Binding RecentMeasurements}">
+                    <BindableLayout.ItemTemplate>
+                        <DataTemplate x:DataType="models:BodyMeasurement">
+                            <Border Padding="14,12"
+                                    StrokeShape="RoundRectangle 12"
+                                    BackgroundColor="White"
+                                    Stroke="#E0E0E0"
+                                    StrokeThickness="1">
+                                <Border.GestureRecognizers>
+                                    <TapGestureRecognizer Command="{Binding Source={x:Reference PageRoot}, Path=BindingContext.SelectMeasurementCommand}"
+                                                          CommandParameter="{Binding .}" />
+                                </Border.GestureRecognizers>
+                                <VerticalStackLayout Spacing="4">
+                                    <Label Text="{Binding DisplayDate}"
+                                           FontSize="15"
+                                           FontAttributes="Bold"
+                                           TextColor="#512BD4" />
+                                    <Label Text="{Binding MeasurementSummary}"
+                                           FontSize="14"
+                                           TextColor="#333333" />
+                                    <Label Text="{Binding Notes}"
+                                           FontSize="12"
+                                           TextColor="#777777"
+                                           IsVisible="{Binding HasNotes}" />
+                                </VerticalStackLayout>
+                            </Border>
+                        </DataTemplate>
+                    </BindableLayout.ItemTemplate>
+                </VerticalStackLayout>
+            </VerticalStackLayout>
+
+        </VerticalStackLayout>
+    </ScrollView>
+
+</ContentPage>

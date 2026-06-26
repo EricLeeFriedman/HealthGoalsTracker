@@ -122,6 +122,9 @@
                     <Label Text="{Binding SelectedDaySummary}"
                            FontSize="14"
                            TextColor="#555" />
+                    <Label Text="{Binding SelectedWeekScoreText}"
+                           FontSize="13"
+                           TextColor="#512BD4" />
                     <BoxView HeightRequest="1" Color="#EEE" Margin="0,4" />
                     <CollectionView ItemsSource="{Binding SelectedDayGoals}"
                                     SelectionMode="None">

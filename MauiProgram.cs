@@ -35,12 +35,15 @@ namespace HealthGoalsTracker
 
             var dbPath = Path.Combine(FileSystem.AppDataDirectory, "healthgoals_v2.db3");
             builder.Services.AddSingleton<IGoalService>(_ => new LocalGoalService(dbPath));
+            builder.Services.AddSingleton<IMeasurementService>(_ => new LocalMeasurementService(dbPath));
             builder.Services.AddSingleton<IHealthNotificationService, NotificationScheduler>();
             builder.Services.AddSingleton<MainViewModel>();
             builder.Services.AddSingleton<HistoryViewModel>();
+            builder.Services.AddSingleton<MeasurementsViewModel>();
             builder.Services.AddSingleton<NotificationsViewModel>();
             builder.Services.AddSingleton<MainPage>();
             builder.Services.AddSingleton<HistoryPage>();
+            builder.Services.AddSingleton<MeasurementsPage>();
             builder.Services.AddSingleton<NotificationsPage>();
             builder.Services.AddSingleton<AppShell>();
 
