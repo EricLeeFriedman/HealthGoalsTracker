@@ -28,6 +28,7 @@ This file lives in the repo so any agent or developer on any machine can pick up
 | Shared live product tests | **Cross-platform feature verification** — `scripts/live-tests/features.json` defines eight shared product outcomes; Windows UI Automation and Android ADB/UIAutomator runners execute the same catalog and emit screenshots, diagnostics, process logs, and machine-readable result reports. The first repeatable Android run exposed and fixed concurrent creation of today's record during startup. | current working tree |
 | Continuous integration | **GitHub Actions quality gate** — public-repository Windows runner restores once, runs all tests, builds Windows and Android targets with warnings treated as errors, and retains TRX results plus a self-contained signed development APK for 14 days | current working tree |
 | Cloud contract | **Authentication and synchronization design** — token trust boundary, versioned API routes, sync envelopes, idempotency, conflict/retry behavior, Cosmos layout, and diagnostic privacy rules documented before implementation | `e46858e` |
+| Functions foundation | **Locally executable backend** — .NET 10 isolated Functions health/sync/read endpoints, strict atomic validation, subject partitioning, server-side score recalculation, goal tombstones, deterministic conflict convergence, signed user-bound cursors, delegated-scope enforcement, EasyAuth principal decoding, 38 backend tests, and real-host HTTP/privacy verification | current working tree |
 
 ---
 
@@ -48,11 +49,14 @@ This file lives in the repo so any agent or developer on any machine can pick up
 - `LocalGoalService.UpdateUserIdAsync()` migration hook called after first sign-in to re-stamp local data with the real user ID
 - Follow the trust boundary and authentication outcomes in `docs/CLOUD-CONTRACTS.md`
 
-### Phase 13 — Azure Functions Backend ⛔ NEEDS AZURE SUBSCRIPTION
-- Azure Functions (Consumption) + Cosmos DB (free tier, 1000 RU/s)
-- Versioned endpoints: `POST /api/v1/sync`, `GET /api/v1/records`, `GET /api/v1/goals`, `GET /api/v1/measurements`
-- JWT validation via Entra External ID issuer
-- Contract tests for validation, authenticated partitioning, and idempotent replay
+### Phase 13 — Azure Functions Backend 🚧 LOCAL FOUNDATION COMPLETE
+- Implemented versioned endpoints: `POST /api/v1/sync`, `GET /api/v1/records`,
+  `GET /api/v1/goals`, and `GET /api/v1/measurements`.
+- Implemented atomic validation, subject partitioning, idempotent replay, deterministic
+  conflict handling, signed subject-bound cursors, scoring, tombstones, and recovery reads.
+- CI and local verification run 38 backend tests plus a real Functions Core Tools HTTP flow.
+- Remaining: replace the in-memory repository with Cosmos DB and configure EasyAuth token
+  issuer/audience validation. Deployment needs the Azure subscription and Entra values.
 
 ### Phase 14 — Cloud Sync (depends on 12 + 13)
 - `CloudSyncService`: fire-and-forget HTTP POST to Azure Functions after every local write
@@ -121,4 +125,7 @@ This file lives in the repo so any agent or developer on any machine can pick up
 | `.github/copilot-instructions.md` | Copilot context (goals, models, conventions) |
 | `docs/ARCHITECTURE.md` | Architecture diagrams, data sync strategy |
 | `docs/CLOUD-CONTRACTS.md` | Planned authentication, API, synchronization, and privacy contract |
+| `HealthGoalsTracker.Functions/` | .NET 10 isolated Functions API and in-memory contract repository |
+| `HealthGoalsTracker.Functions.Tests/` | Backend validator, repository, and direct HTTP-function contract tests |
+| `scripts/verify-backend.ps1` | Real Functions host HTTP, isolation, sync, and privacy verification |
 | `docs/PROGRESS.md` | **This file** — phase tracker for agents |

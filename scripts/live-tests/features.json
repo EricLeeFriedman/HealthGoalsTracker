@@ -48,6 +48,42 @@
       "title": "Runtime diagnostics",
       "requirement": "Expected workflow events are recorded without health values, identifiers, crashes, or unhandled exceptions.",
       "platforms": [ "windows", "android" ]
+    },
+    {
+      "id": "backend.health",
+      "title": "Backend health",
+      "requirement": "The Functions host starts and returns versioned health with a correlation ID.",
+      "platforms": [ "backend" ]
+    },
+    {
+      "id": "backend.identity",
+      "title": "Backend identity boundary",
+      "requirement": "Cloud data routes reject missing identity and partition all data by the validated subject.",
+      "platforms": [ "backend" ]
+    },
+    {
+      "id": "backend.validation",
+      "title": "Atomic backend validation",
+      "requirement": "Malformed, null, or invalid sync payloads return stable errors and apply no valid subset.",
+      "platforms": [ "backend" ]
+    },
+    {
+      "id": "backend.sync",
+      "title": "Synchronization semantics",
+      "requirement": "Sync supports replay, signed user-bound cursors, tombstones, deterministic last-write-wins, authoritative reconciliation, and server-calculated daily totals.",
+      "platforms": [ "backend" ]
+    },
+    {
+      "id": "backend.reads",
+      "title": "Bounded recovery reads",
+      "requirement": "Goals, records, and measurements return only the authenticated user's bounded requested data.",
+      "platforms": [ "backend" ]
+    },
+    {
+      "id": "backend.diagnostics",
+      "title": "Backend diagnostic privacy",
+      "requirement": "Host logs include operation metadata but exclude identities, goal names, health values, notes, and request bodies.",
+      "platforms": [ "backend" ]
     }
   ]
 }

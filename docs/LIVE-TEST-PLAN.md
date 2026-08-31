@@ -15,6 +15,12 @@ choose native interaction mechanisms but may not weaken those expected outcomes.
 | `history.calendar` | Weekday labels, seven-column geometry, legend, dates, and selected-week detail render correctly. |
 | `notifications.configuration` | All notification types render; supported platforms have permission and four schedules. |
 | `diagnostics.runtime` | Expected events are recorded without health values, crashes, or unhandled exceptions. |
+| `backend.health` | The real Functions host starts and returns versioned health with correlation metadata. |
+| `backend.identity` | Missing identity is rejected and data is partitioned by validated subject. |
+| `backend.validation` | Invalid batches fail atomically with stable machine-readable errors. |
+| `backend.sync` | Replay, cursors, conflicts, tombstones, and derived scoring follow the sync contract. |
+| `backend.reads` | Recovery reads are authenticated, user-isolated, date-bounded, and validated. |
+| `backend.diagnostics` | Host logs expose operation metadata without private request values. |
 
 ## Runners
 
@@ -25,6 +31,10 @@ choose native interaction mechanisms but may not weaken those expected outcomes.
   UIAutomator selectors. It never depends on fixed tap coordinates.
 - Both runners save screenshots, logs, diagnostics, and `live-test-results.json`
   beneath their ignored platform artifact directory.
+- `scripts/verify-backend.ps1` launches the real local Functions host and makes HTTP
+  requests covering health, authentication, null/malformed/atomic validation, signed
+  cursor tampering and cross-user rejection, sync semantics, recovery reads, and
+  diagnostic privacy. It requires Azure Functions Core Tools 4.
 
 The Android runner requires a booted emulator or connected device. Its default SDK
 location can be overridden with `-AdbPath`. Pass `-NoBuild` only when the current APK

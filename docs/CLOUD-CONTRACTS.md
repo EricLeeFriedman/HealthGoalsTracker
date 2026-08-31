@@ -2,10 +2,10 @@
 
 ## Status
 
-This document defines the intended boundary for Phases 12–14. Authentication, Azure
-Functions, Cosmos DB, and cloud synchronization are not implemented yet. The contract is
-written before implementation so local models, tests, and server behavior share a
-requirement-driven source of truth.
+This document defines the boundary for Phases 12–14. The versioned Azure Functions API,
+validation, in-memory repository, and local live verification are implemented. Production
+token validation, Cosmos DB persistence, MAUI authentication, and cloud synchronization
+still require implementation and Azure/Entra configuration.
 
 ## Authentication Contract
 
@@ -28,7 +28,9 @@ cache and are never written to application logs.
 
 1. The app requests an access token through MSAL interactive sign-in, with silent refresh
    used for later API calls.
-2. The API validates signature, issuer, audience, lifetime, and required delegated scope.
+2. Azure EasyAuth validates signature, issuer, audience, and lifetime before the request
+   reaches the Functions worker. When `WEBSITE_AUTH_ENABLED=true`, the worker reads the
+   platform-injected client principal and requires the configured delegated scope.
 3. The API derives the stable user ID from the validated token subject. It never trusts a
    `UserId` supplied in JSON or a query string.
 4. Local rows remain assigned to `"local"` until the first successful sign-in migration.
@@ -43,6 +45,11 @@ cache and are never written to application logs.
 | User cancels | Continue offline without treating cancellation as an application error |
 | API returns `401` | Attempt one silent refresh, then require interactive sign-in |
 | API returns `403` | Surface authorization failure; do not retry |
+
+The local-only `X-HealthGoals-Test-Subject` header is accepted only when both
+`AllowDevelopmentIdentity=true` and `AZURE_FUNCTIONS_ENVIRONMENT=Development`. Production
+must leave this disabled. Until EasyAuth is configured with the final Entra authority and
+audience, the production authentication boundary is not complete.
 
 ## API Contract
 
@@ -77,6 +84,8 @@ diagnostics, and bounded initial hydration.
 - A daily record includes its `DailyGoalEntry` snapshots so historical names, icons,
   points, and weekly-only state remain stable.
 - Empty collections are valid and perform a pull-only sync.
+- Collections must be JSON arrays. Explicit `null` collections, `null` entities, and
+  `null` daily-record entry arrays return `400 validation_failed`.
 - The server ignores any client-provided user identifier and stamps the authenticated
   subject on every row.
 
@@ -94,7 +103,12 @@ diagnostics, and bounded initial hydration.
 
 - The cursor is opaque to the client and advances only after the response is durably
   applied locally.
+- Cursors are HMAC-signed, bind the change sequence to the authenticated subject, and
+  require a secret `CursorSigningKey` of at least 32 characters. Malformed, modified,
+  cross-user, and future cursors return `400 validation_failed`.
 - Returned collections contain all server changes after the supplied cursor.
+- A submitted entity is also returned with its authoritative stored value, even when the
+  submission loses conflict resolution.
 - Repeating the same request is idempotent.
 
 ### Validation rules
@@ -105,8 +119,12 @@ diagnostics, and bounded initial hydration.
   contribute to daily totals.
 - A measurement may contain weight, body-fat percentage, notes, or any combination
   accepted by the local product rules.
-- String lengths and request batch sizes must have explicit server limits before
-  implementation.
+- Sync batches allow at most 100 goals, 100 records, and 100 measurements. A record allows
+  at most 100 entries.
+- Goal names allow 120 characters, emoji values 16 characters, and notes 1,000 characters.
+- Weight must be greater than 0 and no more than 1,500 pounds. Body fat must be from
+  0–100 percent.
+- Read ranges allow at most 366 days.
 - Invalid requests return `400` with a stable machine-readable error code and correlation
   ID; validation failures are never partially applied.
 
@@ -118,8 +136,9 @@ diagnostics, and bounded initial hydration.
 4. Pending changes persist locally and retry on launch, foreground, connectivity recovery,
    and explicit refresh with bounded exponential backoff.
 5. Upserts are keyed by authenticated user plus entity GUID.
-6. Conflicts use last-write-wins by UTC `UpdatedAt`. Equal timestamps use a deterministic
-   server-side tie-break and return the winning row.
+6. Conflicts use last-write-wins by UTC `UpdatedAt`. Equal timestamps compare canonical
+   serialized payloads ordinally, making the winner independent of arrival order. The
+   authoritative winner is returned to every submitting client.
 7. Goals use `IsDeleted` and `DeletedAt` tombstones. Measurement deletion must not ship
    until equivalent tombstone fields and tests are added.
 8. Daily scoring is recalculated from entry snapshots after merging; client-provided
@@ -165,7 +184,10 @@ Retries use the same entity IDs and correlation ID so operations remain idempote
 
 ## Implementation Gates
 
-Phase 12 may begin after the Entra tenant, client ID, authority, redirect URI, and API scope
-are available. Phase 13 may begin after an Azure subscription and resource naming/location
-are selected. Phase 14 begins only after both sides have contract tests for authentication,
-validation, idempotent replay, conflict resolution, cursor advancement, and offline retry.
+- The local Functions contract is covered by unit tests and a real Core Tools HTTP run.
+- Production authentication requires the Entra tenant, client ID, authority, API audience,
+  delegated scope, and EasyAuth configuration.
+- Durable persistence requires an Azure subscription plus Cosmos account/database/container
+  configuration; the current in-memory repository intentionally loses data on host restart.
+- MAUI authentication and cloud synchronization begin after both production boundaries are
+  available. Offline retry tests remain mandatory before cloud sync ships.

@@ -53,6 +53,24 @@ jobs:
           --results-directory .\TestResults
           -p:TreatWarningsAsErrors=true
 
+      - name: Run backend tests
+        shell: pwsh
+        run: >
+          dotnet test .\HealthGoalsTracker.Functions.Tests\HealthGoalsTracker.Functions.Tests.csproj
+          --configuration Debug
+          --no-restore
+          --logger "trx;LogFileName=backend-tests.trx"
+          --results-directory .\TestResults
+          -p:TreatWarningsAsErrors=true
+
+      - name: Install Azure Functions Core Tools
+        shell: pwsh
+        run: choco install azure-functions-core-tools-4 --params "'/x64'" --yes --no-progress
+
+      - name: Verify backend host
+        shell: pwsh
+        run: .\scripts\verify-backend.ps1 -NoBuild
+
       - name: Build Windows
         shell: pwsh
         run: >
@@ -79,6 +97,15 @@ jobs:
         with:
           name: test-results
           path: TestResults\*.trx
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Upload backend live results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-live-results
+          path: artifacts\backend-verification\**\live-test-results.json
           if-no-files-found: error
           retention-days: 14
 

@@ -2,7 +2,10 @@
 
 ## Overview
 
-HealthGoalsTracker is an offline-first .NET MAUI app for **Android** (+ Windows for dev). Goal and body-measurement data currently lives in local SQLite. Authentication, cloud sync, and the serverless Azure backend shown below are planned future phases.
+HealthGoalsTracker is an offline-first .NET MAUI app for **Android** (+ Windows for dev).
+Interactive goal and body-measurement data lives in local SQLite. A versioned .NET isolated
+Azure Functions API is implemented and locally verified; production authentication, Cosmos
+persistence, and MAUI cloud sync remain future phases.
 
 ```
 ┌─────────────────────────────────┐
@@ -24,7 +27,7 @@ HealthGoalsTracker is an offline-first .NET MAUI app for **Android** (+ Windows 
              │ HTTPS (when online + signed in)
              ▼
 ┌─────────────────────────────────┐
-│      Azure Functions (API)      │
+│ Azure Functions (implemented)   │
 │                                 │
 │  POST /api/v1/sync              │  ← Push/pull all synchronized data
 │  GET  /api/v1/records           │  ← Fetch history for a date range
@@ -34,7 +37,7 @@ HealthGoalsTracker is an offline-first .NET MAUI app for **Android** (+ Windows 
              │
              ▼
 ┌─────────────────────────────────┐
-│      Azure Cosmos DB            │
+│ Azure Cosmos DB (planned)       │
 │                                 │
 │  Container: goals               │  PK: /userId
 │  Container: dailyRecords        │  PK: /userId  SK: date
@@ -58,7 +61,22 @@ HealthGoalsTracker is an offline-first .NET MAUI app for **Android** (+ Windows 
 - `MeasurementChartView` plots weight against the left Y-axis and body-fat percentage against the right Y-axis. It supports missing values in either series and spaces points by measurement date.
 - Selecting a day in History shows both that day's completion and the canonical Monday–Sunday weekly score.
 
-## Planned Data Sync Strategy
+## Cloud API Foundation
+
+- `HealthGoalsTracker.Functions` is a .NET 10 isolated-worker Functions project.
+- The API exposes health, sync, goals, bounded records, and bounded measurements routes.
+- Sync validates complete batches before writing, recalculates daily scores from snapshots,
+  preserves goal tombstones, and partitions all state by the validated subject.
+- HMAC-signed cursors bind a change sequence to one subject and reject tampering,
+  cross-user reuse, and future server state.
+- Last-write-wins conflicts use UTC `UpdatedAt`; equal timestamps use a canonical
+  order-independent payload comparison and return the authoritative winner.
+- The current repository is in-memory for local contract work. It is not production
+  persistence and is replaced by Cosmos DB in the Azure phase.
+- The worker enforces delegated scope. Azure EasyAuth still must be configured to validate
+  token signature, issuer, audience, and lifetime before production use.
+
+## Planned App Data Sync Strategy
 
 1. **App launch**: load today's `DailyRecord` from SQLite. If user is signed in and online, fetch any records modified on other devices since last sync.
 2. **Goal tap**: write to SQLite immediately (UI updates instantly). Fire-and-forget HTTP POST to sync endpoint.
@@ -153,14 +171,18 @@ User taps "Sign in with Google"
   /live-tests                ← Shared feature catalog and result helpers
   verify-windows.ps1         ← Isolated Windows UI verification
   verify-android.ps1         ← ADB/UIAutomator Android verification
+  verify-backend.ps1           ← Real Functions Core Tools HTTP verification
 /docs
   ARCHITECTURE.md
   CLOUD-CONTRACTS.md
   PROGRESS.md
 
-/HealthGoalsTracker.Functions  ← Planned Azure Functions backend (C#, isolated worker)
-  GoalsApi.cs
-  SyncApi.cs
+/HealthGoalsTracker.Functions  ← .NET 10 isolated Azure Functions API
+  /Contracts                  ← Versioned cloud DTOs
+  /Functions                  ← Health, sync, and recovery-read HTTP triggers
+  /Services                   ← Validation, identity/scope boundary, cursor codec, repository
+
+/HealthGoalsTracker.Functions.Tests ← Backend contract and function tests
 ```
 
 ## Build & Deploy
@@ -170,6 +192,13 @@ User taps "Sign in with Google"
 - **Automated tests**: `dotnet test HealthGoalsTracker.Tests\HealthGoalsTracker.Tests.csproj`
   covers goal lifecycle and scoring, history presentation, measurements, notification
   settings, exports, diagnostics, and UI-facing model state.
+- **Backend tests**:
+  `dotnet test HealthGoalsTracker.Functions.Tests\HealthGoalsTracker.Functions.Tests.csproj`
+  covers validation, identity/scope outcomes, signed cursors, partitioning, conflict
+  convergence, authoritative responses, scoring, replay, and read bounds.
+- **Backend live test**: `.\scripts\verify-backend.ps1` starts the real Functions host and
+  verifies HTTP health, identity isolation, null/malformed validation, signed cursor
+  rejection, sync/replay/conflict behavior, recovery reads, and diagnostic privacy.
 - **Windows live test**: `.\scripts\verify-windows.ps1` exercises Home goal completion
   and reset, the complete Shell flyout, Measurements, the History calendar and detail,
   and Notifications. It verifies visible content, flyout screenshot contrast, calendar
@@ -181,6 +210,7 @@ User taps "Sign in with Google"
   alarms, app diagnostics, and app-scoped logcat errors.
 - **Continuous integration**: `.github/workflows/ci.yml` runs on pushes and pull requests
   to `master`. A Windows runner restores once, runs the requirement tests, builds both
-  target frameworks with warnings treated as errors, and retains TRX results and a
-  self-contained signed development APK for 14 days.
+  target frameworks with warnings treated as errors, runs backend tests plus the real
+  Functions host verification, and retains TRX/live results plus a self-contained signed
+  development APK for 14 days.
 - **Azure deployment**: planned; no deployment workflow or Bicep deployment is currently present.
