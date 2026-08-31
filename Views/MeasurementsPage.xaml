@@ -14,29 +14,43 @@
                     <Label Text="Log Measurement" FontSize="1.2" FontAttributes="Bold" />
                     
                     <Label Text="Date:" />
-                    <DatePicker Date="{Binding SelectedDate}" Format="yyyy-MM-dd" />
+                    <DatePicker AutomationId="MeasurementDate"
+                                Date="{Binding SelectedDate}"
+                                Format="yyyy-MM-dd" />
 
                     <Label Text="Weight (lbs):" />
-                    <Entry Placeholder="e.g. 180" Keyboard="Numeric" Text="{Binding WeightLbs}"/>
+                    <Entry AutomationId="MeasurementWeight"
+                           Placeholder="e.g. 180"
+                           Keyboard="Numeric"
+                           Text="{Binding WeightLbs}"/>
 
                     <Label Text="Body Fat %:" />
-                    <Entry Placeholder="e.g. 22" Keyboard="Numeric" Text="{Binding BodyFatPercent}"/>
+                    <Entry AutomationId="MeasurementBodyFat"
+                           Placeholder="e.g. 22"
+                           Keyboard="Numeric"
+                           Text="{Binding BodyFatPercent}"/>
 
                     <Label Text="Notes:" />
-                    <Editor Text="{Binding Notes}" HeightRequest="100" />
+                    <Editor AutomationId="MeasurementNotes"
+                            Text="{Binding Notes}"
+                            HeightRequest="100" />
 
-                    <Button Text="Save Measurement" Command="{Binding SaveMeasurementCommand}" 
+                    <Button AutomationId="SaveMeasurement"
+                            Text="Save Measurement"
+                            Command="{Binding SaveMeasurementCommand}" 
                             BackgroundColor="#5D3FD3" TextColor="White" />
                 </VerticalStackLayout>
             </Border>
 
             <Border Stroke="#D3D3D3" StrokeShape="RoundRectangle 8" Padding="10">
-                <controls:MeasurementChartView Measurements="{Binding Measurements}" />
+                <controls:MeasurementChartView AutomationId="MeasurementChart"
+                                               Measurements="{Binding Measurements}" />
             </Border>
 
             <!-- List of Recent Entries -->
             <Label Text="Recent History" FontSize="1.2" FontAttributes="Bold" />
-            <CollectionView ItemsSource="{Binding Measurements}">
+            <CollectionView AutomationId="MeasurementHistory"
+                            ItemsSource="{Binding Measurements}">
                 <CollectionView.ItemTemplate>
                     <DataTemplate>
                         <HorizontalStackLayout Padding="10">

@@ -33,9 +33,20 @@ namespace HealthGoalsTracker
                     fonts.AddFont("OpenSans-Semibold.ttf", "OpenSansSemibold");
                 });
 
-            var dbPath = Path.Combine(FileSystem.AppDataDirectory, "healthgoals_v2.db3");
+            var appDataDirectory = FileSystem.AppDataDirectory;
+#if DEBUG
+            var dataDirectoryOverride =
+                Environment.GetEnvironmentVariable("HEALTHGOALSTRACKER_DATA_DIR");
+            if (!string.IsNullOrWhiteSpace(dataDirectoryOverride))
+            {
+                appDataDirectory = Path.GetFullPath(dataDirectoryOverride);
+                Directory.CreateDirectory(appDataDirectory);
+            }
+#endif
+
+            var dbPath = Path.Combine(appDataDirectory, "healthgoals_v2.db3");
             var diagnostics = new DiagnosticsService(
-                Path.Combine(FileSystem.AppDataDirectory, "diagnostics", "healthgoals.log"));
+                Path.Combine(appDataDirectory, "diagnostics", "healthgoals.log"));
             builder.Services.AddSingleton<IDiagnosticsService>(diagnostics);
             builder.Logging.AddProvider(new FileLoggerProvider(diagnostics));
 

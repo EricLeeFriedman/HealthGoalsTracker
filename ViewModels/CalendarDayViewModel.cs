@@ -5,14 +5,18 @@ namespace HealthGoalsTracker.ViewModels
     public partial class CalendarDayViewModel : ObservableObject
     {
         [ObservableProperty]
+        [NotifyPropertyChangedFor(nameof(AutomationId))]
         public partial DateOnly Date { get; set; }
 
         // True for padding cells at the start of the month (no data, no tap)
         [ObservableProperty]
+        [NotifyPropertyChangedFor(nameof(AutomationId))]
+        [NotifyPropertyChangedFor(nameof(IsSelectable))]
         public partial bool IsEmpty { get; set; }
 
         // True when the date is in the future
         [ObservableProperty]
+        [NotifyPropertyChangedFor(nameof(IsSelectable))]
         public partial bool IsFuture { get; set; }
 
         [ObservableProperty]
@@ -23,6 +27,9 @@ namespace HealthGoalsTracker.ViewModels
         public partial double? CompletionPercent { get; set; }
 
         public string DayLabel => IsEmpty ? "" : Date.Day.ToString();
+        public string AutomationId =>
+            IsEmpty ? "HistoryPaddingDay" : $"HistoryDay{Date:yyyyMMdd}";
+        public bool IsSelectable => !IsEmpty && !IsFuture;
 
         public Color BackgroundColor
         {

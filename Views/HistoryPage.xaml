@@ -15,12 +15,14 @@
                   BackgroundColor="#512BD4"
                   Padding="8,12">
                 <Button Grid.Column="0"
+                        AutomationId="PreviousMonth"
                         Text="‹"
                         FontSize="24"
                         TextColor="White"
                         BackgroundColor="Transparent"
                         Command="{Binding PreviousMonthCommand}" />
                 <Label Grid.Column="1"
+                       AutomationId="HistoryMonth"
                        Text="{Binding MonthLabel}"
                        FontSize="18"
                        FontAttributes="Bold"
@@ -28,6 +30,7 @@
                        HorizontalOptions="Center"
                        VerticalOptions="Center" />
                 <Button Grid.Column="2"
+                        AutomationId="NextMonth"
                         Text="›"
                         FontSize="24"
                         TextColor="White"
@@ -60,24 +63,22 @@
                 </CollectionView.ItemsLayout>
                 <CollectionView.ItemTemplate>
                     <DataTemplate x:DataType="vm:CalendarDayViewModel">
-                        <Border BackgroundColor="{Binding BackgroundColor}"
-                                StrokeThickness="2"
-                                Stroke="{Binding BorderColor}"
-                                StrokeShape="RoundRectangle 6"
-                                HeightRequest="42">
-                            <Border.GestureRecognizers>
-                                <TapGestureRecognizer
-                                    Command="{Binding Source={RelativeSource AncestorType={x:Type vm:HistoryViewModel}},
-                                                      Path=SelectDayCommand}"
-                                    CommandParameter="{Binding .}" />
-                            </Border.GestureRecognizers>
-                            <Label Text="{Binding DayLabel}"
-                                   FontSize="13"
-                                   FontAttributes="Bold"
-                                   TextColor="White"
-                                   HorizontalOptions="Center"
-                                   VerticalOptions="Center" />
-                        </Border>
+                        <Button AutomationId="{Binding AutomationId}"
+                                SemanticProperties.Description="{Binding AutomationId}"
+                                Text="{Binding DayLabel}"
+                                IsEnabled="{Binding IsSelectable}"
+                                Command="{Binding Source={RelativeSource AncestorType={x:Type vm:HistoryViewModel}},
+                                                  Path=SelectDayCommand}"
+                                CommandParameter="{Binding .}"
+                                BackgroundColor="{Binding BackgroundColor}"
+                                BorderWidth="2"
+                                BorderColor="{Binding BorderColor}"
+                                CornerRadius="6"
+                                HeightRequest="42"
+                                Padding="0"
+                                FontSize="13"
+                                FontAttributes="Bold"
+                                TextColor="White" />
                     </DataTemplate>
                 </CollectionView.ItemTemplate>
             </CollectionView>
@@ -116,13 +117,16 @@
                     StrokeThickness="1">
                 <VerticalStackLayout Spacing="8">
                     <Label Text="{Binding SelectedDayLabel}"
+                           AutomationId="SelectedDayLabel"
                            FontSize="16"
                            FontAttributes="Bold"
                            TextColor="#512BD4" />
                     <Label Text="{Binding SelectedDaySummary}"
+                           AutomationId="SelectedDaySummary"
                            FontSize="14"
                            TextColor="#555" />
                     <Label Text="{Binding SelectedWeekSummary}"
+                           AutomationId="SelectedWeekSummary"
                            FontSize="14"
                            FontAttributes="Bold"
                            TextColor="#512BD4" />

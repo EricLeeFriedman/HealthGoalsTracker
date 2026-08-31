@@ -31,6 +31,13 @@ namespace HealthGoalsTracker
         public async Task ScheduleNotificationsAsync(
             IHealthNotificationService notificationService)
         {
+            if (OperatingSystem.IsWindows())
+            {
+                Logger.LogInformation(
+                    "Notification scheduling skipped on the Windows development target");
+                return;
+            }
+
             try
             {
                 await notificationService.RescheduleAllAsync();

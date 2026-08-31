@@ -69,6 +69,8 @@ HealthGoalsTracker is an offline-first .NET MAUI app for **Android** (+ Windows 
 Notifications are **locally scheduled** on the device — no server push required for these simple time-based patterns. The device reschedules each night based on user settings stored in SQLite.
 
 Azure Notification Hubs is reserved for future server-initiated pushes (e.g., streaks, achievements).
+The unpackaged Windows target is for development and does not register local notifications;
+scheduling is enabled on the primary Android target.
 
 ## Runtime Diagnostics
 
@@ -81,6 +83,10 @@ Azure Notification Hubs is reserved for future server-initiated pushes (e.g., st
   excluded from diagnostic messages.
 - The Shell's **Export Diagnostics** action creates a stable snapshot and opens the platform
   share sheet for inspection after a run.
+- DEBUG builds accept `HEALTHGOALSTRACKER_DATA_DIR` to isolate runtime verification from
+  real application data. `scripts/verify-windows.ps1` uses this override with Windows UI
+  Automation and writes ignored screenshots, process output, logs, and a summary under
+  a timestamped directory below `artifacts/windows-verification`.
 
 ## Planned Azure Resource Group Layout
 
