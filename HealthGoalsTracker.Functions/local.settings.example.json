@@ -1,0 +1,11 @@
+{
+  "IsEncrypted": false,
+  "Values": {
+    "AzureWebJobsStorage": "UseDevelopmentStorage=true",
+    "FUNCTIONS_WORKER_RUNTIME": "dotnet-isolated",
+    "AZURE_FUNCTIONS_ENVIRONMENT": "Development",
+    "AllowDevelopmentIdentity": "false",
+    "ApiScope": "health-goals.sync",
+    "CursorSigningKey": "replace-with-at-least-32-random-characters"
+  }
+}

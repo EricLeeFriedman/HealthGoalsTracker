@@ -1,4 +1,6 @@
 <Solution>
   <Project Path="HealthGoalsTracker.csproj" />
+  <Project Path="HealthGoalsTracker.Functions.Tests/HealthGoalsTracker.Functions.Tests.csproj" />
+  <Project Path="HealthGoalsTracker.Functions/HealthGoalsTracker.Functions.csproj" />
   <Project Path="HealthGoalsTracker.Tests/HealthGoalsTracker.Tests.csproj" />
 </Solution>
