@@ -41,7 +41,7 @@ namespace HealthGoalsTracker
             try
             {
                 await notificationService.RescheduleAllAsync();
-                Logger.LogInformation("Notifications scheduled");
+                Logger.LogInformation("Notification scheduling completed");
             }
             catch (Exception exception)
             {

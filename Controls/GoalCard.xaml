@@ -33,18 +33,18 @@
             <VerticalStackLayout Grid.Row="1"
                                  VerticalOptions="Center"
                                  HorizontalOptions="Center"
-                                 Spacing="6">
+                                 Spacing="2">
                 <Label Text="{Binding IconEmoji}"
-                       FontSize="36"
+                       FontSize="32"
                        HorizontalOptions="Center" />
                 <Label Text="{Binding Name}"
-                       FontSize="13"
+                       FontSize="12"
                        FontAttributes="Bold"
                        TextColor="White"
                        HorizontalOptions="Center"
                        HorizontalTextAlignment="Center"
                        LineBreakMode="WordWrap"
-                       MaxLines="3" />
+                       MaxLines="2" />
             </VerticalStackLayout>
 
             <!-- Bottom: points badge -->

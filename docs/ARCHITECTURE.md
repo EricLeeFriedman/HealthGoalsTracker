@@ -71,6 +71,8 @@ rules are defined in [`CLOUD-CONTRACTS.md`](CLOUD-CONTRACTS.md).
 ## Push Notifications
 
 Notifications are **locally scheduled** on the device — no server push required for these simple time-based patterns. The device reschedules each night based on user settings stored in SQLite.
+Android notification permission is checked and requested before schedules are created;
+denial is recorded without falsely reporting successful scheduling.
 
 Azure Notification Hubs is reserved for future server-initiated pushes (e.g., streaks, achievements).
 The unpackaged Windows target is for development and does not register local notifications;
