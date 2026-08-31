@@ -52,6 +52,7 @@ public class LocalGoalService : IGoalService
             await Database.ExecuteAsync("UPDATE Goal SET IconEmoji = '🏃' WHERE IconEmoji = '⭐' AND Name = 'Movement'");
             await Database.ExecuteAsync("UPDATE Goal SET IconEmoji = '💧' WHERE IconEmoji = '⭐' AND Name = 'Drank at least 70oz of water'");
             await Database.ExecuteAsync("UPDATE Goal SET IconEmoji = '🧘' WHERE IconEmoji = '⭐' AND Name = 'Meditated for at least 5 min'");
+            await Database.ExecuteAsync("UPDATE Goal SET Name = 'Meditated for at least 5 minutes' WHERE IsDefault = 1 AND Name = 'Meditated for at least 5 min'");
             await Database.ExecuteAsync("UPDATE Goal SET IconEmoji = '⏱️' WHERE IconEmoji = '⭐' AND Name = 'Fasted for at least 12 hours'");
             await Database.ExecuteAsync("UPDATE Goal SET IconEmoji = '💪' WHERE IconEmoji = '⭐' AND Name = 'Strength Training'");
             await Database.ExecuteAsync("UPDATE DailyGoalEntry SET IconEmoji = '😴' WHERE IconEmoji = '⭐' AND GoalName = 'Slept at least 7 hours'");
@@ -60,6 +61,10 @@ public class LocalGoalService : IGoalService
             await Database.ExecuteAsync("UPDATE DailyGoalEntry SET IconEmoji = '🏃' WHERE IconEmoji = '⭐' AND GoalName = 'Movement'");
             await Database.ExecuteAsync("UPDATE DailyGoalEntry SET IconEmoji = '💧' WHERE IconEmoji = '⭐' AND GoalName = 'Drank at least 70oz of water'");
             await Database.ExecuteAsync("UPDATE DailyGoalEntry SET IconEmoji = '🧘' WHERE IconEmoji = '⭐' AND GoalName = 'Meditated for at least 5 min'");
+            await Database.ExecuteAsync(
+                "UPDATE DailyGoalEntry SET GoalName = 'Meditated for at least 5 minutes' " +
+                "WHERE GoalName = 'Meditated for at least 5 min' " +
+                "AND GoalId IN (SELECT Id FROM Goal WHERE IsDefault = 1)");
             await Database.ExecuteAsync("UPDATE DailyGoalEntry SET IconEmoji = '⏱️' WHERE IconEmoji = '⭐' AND GoalName = 'Fasted for at least 12 hours'");
             await Database.ExecuteAsync("UPDATE DailyGoalEntry SET IconEmoji = '💪' WHERE IconEmoji = '⭐' AND GoalName = 'Strength Training'");
 
@@ -445,7 +450,7 @@ public class LocalGoalService : IGoalService
                 new() { Name = "Ate at least 150g of Protein", IconEmoji = "🥩", Points = 3, SortOrder = 2, IsDefault = true },
                 new() { Name = "Movement",                      IconEmoji = "🏃", Points = 2, SortOrder = 3, IsDefault = true },
                 new() { Name = "Drank at least 70oz of water", IconEmoji = "💧", Points = 1, SortOrder = 4, IsDefault = true },
-                new() { Name = "Meditated for at least 5 min", IconEmoji = "🧘", Points = 1, SortOrder = 5, IsDefault = true },
+                new() { Name = "Meditated for at least 5 minutes", IconEmoji = "🧘", Points = 1, SortOrder = 5, IsDefault = true },
                 new() { Name = "Fasted for at least 12 hours", IconEmoji = "⏱️", Points = 1, SortOrder = 6, IsDefault = true },
                 new() { Name = "Strength Training",             IconEmoji = "💪", Points = 0, SortOrder = 7, IsDefault = true, IsWeeklyOnly = true },
             };

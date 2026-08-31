@@ -21,7 +21,7 @@ This file lives in the repo so any agent or developer on any machine can pick up
 | 11 | **Body measurements** — `BodyMeasurement`, SQLite-backed `IMeasurementService` / `LocalMeasurementService`, one measurement per user/date with update-on-resave behavior, entry form, recent-history list, Shell navigation, DI wiring, and a MAUI `GraphicsView` dual-axis chart supporting sparse weight/body-fat series | `abad07b` + `a809405` |
 | Build cleanup | Replaced obsolete MAUI `Frame` usage, migrated CommunityToolkit observable fields to WinRT/AOT-compatible partial properties, and pinned patched SQLite native binaries for warning-free Android and Windows builds | `abad07b` |
 | 10 follow-up | **History weekly score** — selected-day breakdown shows the canonical Monday–Sunday weekly percentage and date range, including weeks where the selected day has no record | `269bc7a` |
-| Test foundation | **Automated business-logic coverage** — Windows-targeted xUnit project covers measurement upsert/order behavior, weekly averaging/session caps/user isolation, Monday week boundaries, and chart range handling | `b15c63d` |
+| Test foundation | **Automated feature coverage** — 100 requirement-driven Windows-targeted xUnit cases cover default goals, CRUD/snapshots/reset/migrations, daily and weekly scoring, history/calendar presentation, settings and notification editing/scheduling, measurement validation/persistence/view state/chart math, exports, and diagnostics; the Windows smoke test covers Home, Reset Today, Measurements, History, and Notifications | `b15c63d` + current working tree |
 | Diagnostics | **Persistent runtime diagnostics** — bounded rotating file logs for lifecycle, page-load, persistence, notification, export, and unhandled-error events; excludes health values and identifiers; Shell action exports a stable log snapshot | `2ebcf5b` |
 | Runtime verification | **Windows + Android smoke verification** — isolated Windows UI Automation through Home/Measurements/History with synthetic persistence and screenshots; Android API 36 deployment with screenshot, UI hierarchy, app diagnostics, notification scheduling, and logcat inspection | `7ba9ddc` + `eb1ff42` |
 | Cloud contract | **Authentication and synchronization design** — token trust boundary, versioned API routes, sync envelopes, idempotency, conflict/retry behavior, Cosmos layout, and diagnostic privacy rules documented before implementation | `e46858e` |
@@ -107,7 +107,7 @@ This file lives in the repo so any agent or developer on any machine can pick up
 | `Views/HistoryPage.xaml` | Calendar heatmap page |
 | `Views/MeasurementsPage.xaml` | Body measurements entry form, dual-axis chart, and recent history |
 | `Views/NotificationsPage.xaml` | Notification settings page |
-| `HealthGoalsTracker.Tests/` | xUnit coverage for SQLite services, scoring, week boundaries, and chart calculations |
+| `HealthGoalsTracker.Tests/` | Requirement-driven xUnit coverage for goal workflows, scoring, history, measurements, notifications, exports, diagnostics, and presentation models |
 | `scripts/verify-windows.ps1` | Isolated Windows UI automation, screenshots, and diagnostic assertions |
 | `AppShell.xaml.cs` | Flyout nav + menu actions |
 | `MauiProgram.cs` | All DI registrations |

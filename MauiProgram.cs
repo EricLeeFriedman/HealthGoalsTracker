@@ -58,6 +58,7 @@ namespace HealthGoalsTracker
                 new LocalMeasurementService(
                     dbPath,
                     services.GetRequiredService<ILogger<LocalMeasurementService>>()));
+            builder.Services.AddSingleton<ILocalNotificationGateway, LocalNotificationGateway>();
             builder.Services.AddSingleton<IHealthNotificationService, NotificationScheduler>();
             builder.Services.AddSingleton<MainViewModel>();
             builder.Services.AddSingleton<HistoryViewModel>();

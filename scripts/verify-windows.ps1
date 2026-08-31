@@ -96,18 +96,25 @@ function Find-ElementById(
 
 function Find-ElementByName(
     [System.Windows.Automation.AutomationElement]$Root,
-    [string]$Name
+    [string]$Name,
+    [int]$TimeoutSeconds = 10
 ) {
     $condition = New-Object System.Windows.Automation.PropertyCondition(
         [System.Windows.Automation.AutomationElement]::NameProperty,
         $Name)
-    $element = $Root.FindFirst(
-        [System.Windows.Automation.TreeScope]::Descendants,
-        $condition)
-    if ($null -eq $element) {
-        throw "Automation element named '$Name' was not found."
-    }
-    return $element
+    $deadline = (Get-Date).AddSeconds($TimeoutSeconds)
+
+    do {
+        $element = $Root.FindFirst(
+            [System.Windows.Automation.TreeScope]::Descendants,
+            $condition)
+        if ($null -ne $element) {
+            return $element
+        }
+        Start-Sleep -Milliseconds 200
+    } while ((Get-Date) -lt $deadline)
+
+    throw "Automation element named '$Name' was not found."
 }
 
 function Wait-ElementNameMatches(
@@ -236,8 +243,7 @@ try {
     }
     Save-Screenshot '01-home'
 
-    $sleepGoal = Find-ElementByName $root 'Slept at least 7 hours'
-    Click-ElementCenter $sleepGoal
+    Invoke-Element $root 'ToggleGoal'
     $completedScore = Wait-ElementNameMatches $root 'DailyScore' '^Today:\s*3\s*/\s*14$'
     [string]$completedScoreText = $completedScore.Current.Name
     Open-Navigation $root
@@ -278,7 +284,12 @@ try {
     if ($weeklySummary.Current.Name -notmatch '^This week: \d+%') {
         throw "Weekly History summary was not visible: '$($weeklySummary.Current.Name)'."
     }
+    [string]$weeklySummaryText = $weeklySummary.Current.Name
     Save-Screenshot '04-history'
+
+    Select-NavigationItem $root '🔔  Notifications'
+    Start-Sleep -Seconds 1
+    Save-Screenshot '05-notifications'
 
     $diagnosticLog = Join-Path $dataPath 'diagnostics\healthgoals.log'
     $requiredEvents = @(
@@ -289,6 +300,7 @@ try {
         'Measurements page loaded',
         'New measurement saved',
         'History page loaded',
+        'Notifications page loaded',
         'Notification scheduling skipped on the Windows development target'
     )
     $logContents = Get-Content $diagnosticLog -Raw
@@ -307,7 +319,8 @@ try {
         "Completed score before reset: $completedScoreText"
         "Score after reset: $resetScoreText"
         "Measurement history: $historyText"
-        "History weekly summary: $($weeklySummary.Current.Name)"
+        "History weekly summary: $weeklySummaryText"
+        'Notifications page: loaded'
         "Diagnostics: $diagnosticLog"
     ) | Set-Content (Join-Path $outputPath 'verification-summary.txt')
 }

@@ -11,23 +11,7 @@
         <Border.StrokeShape>
             <RoundRectangle CornerRadius="16" />
         </Border.StrokeShape>
-        <Border.GestureRecognizers>
-            <TapGestureRecognizer Tapped="OnCardTapped" />
-        </Border.GestureRecognizers>
-
         <Grid RowDefinitions="Auto,*,Auto" Padding="10,8,10,12">
-
-            <!-- Options button — top right -->
-            <Button Grid.Row="0"
-                    Text="•••"
-                    FontSize="13"
-                    TextColor="White"
-                    BackgroundColor="Transparent"
-                    HorizontalOptions="End"
-                    WidthRequest="36"
-                    HeightRequest="30"
-                    Padding="0"
-                    Command="{Binding OpenOptionsCommand}" />
 
             <!-- Centre: emoji + goal name -->
             <VerticalStackLayout Grid.Row="1"
@@ -54,6 +38,25 @@
                    TextColor="White"
                    Opacity="0.8"
                    HorizontalOptions="Center" />
+
+            <Button Grid.RowSpan="3"
+                    AutomationId="ToggleGoal"
+                    SemanticProperties.Description="{Binding Name}"
+                    BackgroundColor="Transparent"
+                    BorderWidth="0"
+                    Clicked="OnCardButtonClicked" />
+
+            <!-- Options button — top right -->
+            <Button Grid.Row="0"
+                    Text="•••"
+                    FontSize="13"
+                    TextColor="White"
+                    BackgroundColor="Transparent"
+                    HorizontalOptions="End"
+                    WidthRequest="36"
+                    HeightRequest="30"
+                    Padding="0"
+                    Command="{Binding OpenOptionsCommand}" />
 
         </Grid>
     </Border>

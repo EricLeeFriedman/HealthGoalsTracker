@@ -115,6 +115,56 @@ public class DiagnosticsServiceTests
         }
     }
 
+    [Fact]
+    public void RotateIfNeeded_RetainsAtMostConfiguredArchiveCount()
+    {
+        var directory = CreateDirectory();
+        var logPath = Path.Combine(directory, "healthgoals.log");
+        var service = new DiagnosticsService(logPath);
+
+        try
+        {
+            for (var index = 0; index < DiagnosticsService.ArchiveCount + 2; index++)
+            {
+                File.WriteAllText(logPath, new string('x', (int)DiagnosticsService.MaximumLogBytes));
+                service.Write(
+                    LogLevel.Information,
+                    "HealthGoalsTracker.Tests",
+                    default,
+                    $"Rotation {index}",
+                    null);
+            }
+
+            Assert.True(File.Exists($"{logPath}.{DiagnosticsService.ArchiveCount}"));
+            Assert.False(File.Exists($"{logPath}.{DiagnosticsService.ArchiveCount + 1}"));
+        }
+        finally
+        {
+            Directory.Delete(directory, true);
+        }
+    }
+
+    [Fact]
+    public void CreateSnapshot_WhenNoEventsExistCreatesReadableEmptySnapshot()
+    {
+        var directory = CreateDirectory();
+        var logPath = Path.Combine(directory, "healthgoals.log");
+        var service = new DiagnosticsService(logPath);
+
+        try
+        {
+            var snapshotPath = service.CreateSnapshot(Path.Combine(directory, "export"));
+
+            Assert.Equal(
+                "No diagnostic events have been recorded.",
+                File.ReadAllText(snapshotPath));
+        }
+        finally
+        {
+            Directory.Delete(directory, true);
+        }
+    }
+
     public static string CreateDirectory()
     {
         var directory = Path.Combine(

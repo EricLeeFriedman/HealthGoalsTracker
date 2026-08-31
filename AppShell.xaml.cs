@@ -1,4 +1,3 @@
-using System.Text.Json;
 using HealthGoalsTracker.Services;
 using HealthGoalsTracker.ViewModels;
 using HealthGoalsTracker.Views;
@@ -10,6 +9,7 @@ namespace HealthGoalsTracker
     {
         public IGoalService GoalService;
         public MainViewModel MainViewModel;
+        public IHealthNotificationService NotificationService;
         public IDiagnosticsService DiagnosticsService;
         public ILogger<AppShell> Logger;
 
@@ -17,12 +17,14 @@ namespace HealthGoalsTracker
             IServiceProvider services,
             IGoalService goalService,
             MainViewModel mainViewModel,
+            IHealthNotificationService notificationService,
             IDiagnosticsService diagnosticsService,
             ILogger<AppShell> logger)
         {
             InitializeComponent();
             GoalService = goalService;
             MainViewModel = mainViewModel;
+            NotificationService = notificationService;
             DiagnosticsService = diagnosticsService;
             Logger = logger;
 
@@ -100,6 +102,7 @@ namespace HealthGoalsTracker
 
             await GoalService.ResetTodayAsync();
             await MainViewModel.LoadAsync();
+            await NotificationService.RescheduleAllAsync();
             Logger.LogInformation("Reset Today completed");
 
             await GoToAsync("//home");
@@ -109,32 +112,7 @@ namespace HealthGoalsTracker
         {
             try
             {
-                var from = new DateOnly(2020, 1, 1);
-                var to   = DateOnly.FromDateTime(DateTime.Today);
-                var records = await GoalService.GetRecordsForRangeAsync(from, to);
-
-                var days = new List<object>();
-                foreach (var rec in records)
-                {
-                    var entries = await GoalService.GetDailyEntriesAsync(rec.Id);
-                    days.Add(new
-                    {
-                        date            = rec.Date,
-                        pointsEarned    = rec.TotalPointsEarned,
-                        pointsPossible  = rec.TotalPointsPossible,
-                        completionPct   = Math.Round(rec.CompletionPercent, 1),
-                        goals           = entries.Select(entry => new
-                        {
-                            name      = entry.GoalName,
-                            points    = entry.GoalPoints,
-                            completed = entry.IsCompleted
-                        })
-                    });
-                }
-
-                var export = new { exportedAt = DateTime.UtcNow, days };
-                var json = JsonSerializer.Serialize(export,
-                    new JsonSerializerOptions { WriteIndented = true });
+                var json = await DataExportService.BuildJsonAsync(GoalService);
 
                 var path = Path.Combine(FileSystem.CacheDirectory, "health_goals_export.json");
                 await File.WriteAllTextAsync(path, json);
@@ -186,7 +164,7 @@ namespace HealthGoalsTracker
 
             await page.DisplayAlertAsync(
                 "Health Goals Tracker",
-                "Track your six daily health goals.\n\nVersion 1.0\nBuilt with .NET MAUI",
+                "Track seven daily health goals and weekly strength training.\n\nVersion 1.0\nBuilt with .NET MAUI",
                 "OK");
         }
     }

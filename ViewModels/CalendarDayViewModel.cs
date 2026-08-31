@@ -35,8 +35,9 @@ namespace HealthGoalsTracker.ViewModels
         {
             get
             {
-                if (IsEmpty || IsFuture) return Colors.Transparent;
-                if (CompletionPercent == null) return Color.FromArgb("#E0E0E0");
+                if (IsEmpty) return Colors.Transparent;
+                if (IsFuture) return Color.FromArgb("#E0E0E0");
+                if (CompletionPercent == null) return Colors.Transparent;
                 var pct = CompletionPercent.Value;
                 if (pct >= 100) return Color.FromArgb("#4CAF50");  // green
                 if (pct >= 50)  return Color.FromArgb("#FFC107");  // amber

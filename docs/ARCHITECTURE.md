@@ -72,7 +72,8 @@ rules are defined in [`CLOUD-CONTRACTS.md`](CLOUD-CONTRACTS.md).
 
 Notifications are **locally scheduled** on the device — no server push required for these
 simple time-based patterns. Repeating alarms are refreshed on app launch and whenever
-notification settings change.
+notification settings or goal completion state changes. Nudge schedules are omitted after
+any goal is completed that day and restored if today's completions are reset.
 Android notification permission is checked and requested before schedules are created;
 denial is recorded without falsely reporting successful scheduling.
 
@@ -134,7 +135,7 @@ User taps "Sign in with Google"
   /Platforms/Android
   /infra                     ← Planned Bicep IaC
 
-/HealthGoalsTracker.Tests    ← Requirement-driven xUnit tests
+/HealthGoalsTracker.Tests    ← Requirement-driven feature, service, and presentation tests
 /scripts
   verify-windows.ps1         ← Isolated Windows UI smoke verification
 /docs
@@ -152,5 +153,10 @@ User taps "Sign in with Google"
 - **Local dev**: `dotnet build -f net10.0-android` (or `net10.0-windows10.0.19041.0` for desktop testing)
 - **Current full build**: `dotnet build` builds Android and Windows on Windows.
 - **Automated tests**: `dotnet test HealthGoalsTracker.Tests\HealthGoalsTracker.Tests.csproj`
-- **Windows UI smoke test**: `.\scripts\verify-windows.ps1` writes ignored evidence beneath `artifacts\windows-verification`.
+  covers goal lifecycle and scoring, history presentation, measurements, notification
+  settings, exports, diagnostics, and UI-facing model state.
+- **Windows UI smoke test**: `.\scripts\verify-windows.ps1` exercises Home goal completion
+  and reset, Measurements, and History; it also verifies Notifications navigation and
+  page-load diagnostics. The script writes ignored screenshots and
+  diagnostics beneath `artifacts/windows-verification`.
 - **CI/CD and Azure deployment**: planned; no workflow or Bicep deployment is currently present.

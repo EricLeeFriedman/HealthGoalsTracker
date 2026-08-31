@@ -89,11 +89,6 @@ public class MeasurementChartView : GraphicsView, IDrawable
 
         var firstDate = points[0].Date;
         var lastDate = points[^1].Date;
-        var dateSpan = Math.Max(1, lastDate.DayNumber - firstDate.DayNumber);
-
-        float GetX(DateOnly date) =>
-            plot.Left + ((date.DayNumber - firstDate.DayNumber) / (float)dateSpan) * plot.Width;
-
         DrawDateLabels(canvas, plot, firstDate, lastDate);
 
         var weightValues = points
@@ -114,7 +109,7 @@ public class MeasurementChartView : GraphicsView, IDrawable
                 points
                     .Where(item => item.Measurement.WeightLbs.HasValue)
                     .Select(item => (
-                        X: GetX(item.Date),
+                        X: GetDateX(item.Date, firstDate, lastDate, plot),
                         Value: item.Measurement.WeightLbs!.Value)),
                 plot,
                 weightRange,
@@ -130,7 +125,7 @@ public class MeasurementChartView : GraphicsView, IDrawable
                 points
                     .Where(item => item.Measurement.BodyFatPercent.HasValue)
                     .Select(item => (
-                        X: GetX(item.Date),
+                        X: GetDateX(item.Date, firstDate, lastDate, plot),
                         Value: item.Measurement.BodyFatPercent!.Value)),
                 plot,
                 bodyFatRange,
@@ -148,6 +143,20 @@ public class MeasurementChartView : GraphicsView, IDrawable
         var span = max - min;
         var padding = span > 0 ? span * 0.1 : Math.Max(Math.Abs(min) * 0.05, 1);
         return (min - padding, max + padding);
+    }
+
+    public static float GetDateX(
+        DateOnly date,
+        DateOnly firstDate,
+        DateOnly lastDate,
+        RectF plot)
+    {
+        var dateSpan = lastDate.DayNumber - firstDate.DayNumber;
+        if (dateSpan == 0)
+            return plot.Left + plot.Width / 2;
+
+        return plot.Left +
+            ((date.DayNumber - firstDate.DayNumber) / (float)dateSpan) * plot.Width;
     }
 
     public static void DrawAxes(ICanvas canvas, RectF plot)

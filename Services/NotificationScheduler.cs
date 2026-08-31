@@ -8,6 +8,7 @@ namespace HealthGoalsTracker.Services;
 public class NotificationScheduler : IHealthNotificationService
 {
     public IGoalService GoalService;
+    public ILocalNotificationGateway NotificationGateway;
     public ILogger<NotificationScheduler> Logger;
 
     static readonly int NudgeBaseId = 1000;
@@ -16,14 +17,22 @@ public class NotificationScheduler : IHealthNotificationService
 
     public NotificationScheduler(
         IGoalService goalService,
+        ILocalNotificationGateway notificationGateway,
         ILogger<NotificationScheduler> logger)
     {
         GoalService = goalService;
+        NotificationGateway = notificationGateway;
         Logger = logger;
     }
 
     public async Task RescheduleAllAsync()
     {
+        if (!NotificationGateway.IsSupported)
+        {
+            Logger.LogInformation("Notification scheduling skipped on the current development target");
+            return;
+        }
+
         var settings = await GoalService.GetUserSettingsAsync();
         if (!settings.NotificationsEnabled)
         {
@@ -33,10 +42,10 @@ public class NotificationScheduler : IHealthNotificationService
         }
 
         var permissionGranted =
-            await LocalNotificationCenter.Current.AreNotificationsEnabled();
+            await NotificationGateway.AreNotificationsEnabledAsync();
         if (!permissionGranted)
             permissionGranted =
-                await LocalNotificationCenter.Current.RequestNotificationPermission();
+                await NotificationGateway.RequestPermissionAsync();
 
         if (!permissionGranted)
         {
@@ -45,10 +54,17 @@ public class NotificationScheduler : IHealthNotificationService
         }
 
         var schedules = await GoalService.GetNotificationSchedulesAsync();
-        LocalNotificationCenter.Current.CancelAll();
+        var todayRecord = await GoalService.GetTodayRecordAsync();
+        var todayEntries = await GoalService.GetDailyEntriesAsync(todayRecord.Id);
+        var completedToday = todayEntries.Count(entry => entry.IsCompleted);
+        NotificationGateway.CancelAll();
 
         foreach (var schedule in schedules.Where(s => s.IsEnabled).OrderBy(s => s.SortOrder))
         {
+            if (schedule.Type == NotificationType.NudgeIfNoGoalsCompleted &&
+                completedToday > 0)
+                continue;
+
             switch (schedule.Type)
             {
                 case NotificationType.NudgeIfNoGoalsCompleted:
@@ -68,18 +84,18 @@ public class NotificationScheduler : IHealthNotificationService
 
     public Task CancelNudgesAsync()
     {
-        LocalNotificationCenter.Current.Cancel(NudgeBaseId);
-        LocalNotificationCenter.Current.Cancel(NudgeBaseId + 1);
+        NotificationGateway.Cancel(NudgeBaseId);
+        NotificationGateway.Cancel(NudgeBaseId + 1);
         return Task.CompletedTask;
     }
 
     public Task CancelAllAsync()
     {
-        LocalNotificationCenter.Current.CancelAll();
+        NotificationGateway.CancelAll();
         return Task.CompletedTask;
     }
 
-    async Task ScheduleNudgeAsync(NotificationSchedule schedule)
+    public async Task ScheduleNudgeAsync(NotificationSchedule schedule)
     {
         var request = new NotificationRequest
         {
@@ -94,10 +110,10 @@ public class NotificationScheduler : IHealthNotificationService
             },
             Android        = { ChannelId = "health_goals" }
         };
-        await LocalNotificationCenter.Current.Show(request);
+        await NotificationGateway.ShowAsync(request);
     }
 
-    async Task ScheduleDailySummaryAsync(NotificationSchedule schedule)
+    public async Task ScheduleDailySummaryAsync(NotificationSchedule schedule)
     {
         var request = new NotificationRequest
         {
@@ -112,10 +128,10 @@ public class NotificationScheduler : IHealthNotificationService
             },
             Android        = { ChannelId = "health_goals" }
         };
-        await LocalNotificationCenter.Current.Show(request);
+        await NotificationGateway.ShowAsync(request);
     }
 
-    async Task ScheduleMorningRecapAsync(NotificationSchedule schedule)
+    public async Task ScheduleMorningRecapAsync(NotificationSchedule schedule)
     {
         var request = new NotificationRequest
         {
@@ -130,15 +146,17 @@ public class NotificationScheduler : IHealthNotificationService
             },
             Android        = { ChannelId = "health_goals" }
         };
-        await LocalNotificationCenter.Current.Show(request);
+        await NotificationGateway.ShowAsync(request);
     }
 
-    static DateTime NextOccurrence(int hour, int minute)
+    public static DateTime NextOccurrence(int hour, int minute) =>
+        NextOccurrence(hour, minute, DateTime.Now);
+
+    public static DateTime NextOccurrence(int hour, int minute, DateTime now)
     {
-        var candidate = DateTime.Today.AddHours(hour).AddMinutes(minute);
-        if (candidate <= DateTime.Now)
+        var candidate = now.Date.AddHours(hour).AddMinutes(minute);
+        if (candidate <= now)
             candidate = candidate.AddDays(1);
         return candidate;
     }
 }
-

@@ -93,12 +93,9 @@ public partial class MainViewModel : ObservableObject
         if (card.IsCompleted)
         {
             WeakReferenceMessenger.Default.Send(new CelebrationMessage(AllGoalsCompleted, card.TapOrigin));
-
-            // Cancel nudge notifications when the first goal of the day is completed.
-            bool isFirstCompletion = Goals.Count(g => g.IsCompleted) == 1;
-            if (isFirstCompletion)
-                _ = NotificationService.CancelNudgesAsync();
         }
+
+        await NotificationService.RescheduleAllAsync();
     }
 
     // -------------------------------------------------------------------------

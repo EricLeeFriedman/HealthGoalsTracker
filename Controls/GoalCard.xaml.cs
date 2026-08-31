@@ -9,25 +9,46 @@ public partial class GoalCard : ContentView
         InitializeComponent();
     }
 
-    async void OnCardTapped(object? sender, TappedEventArgs e)
+    async void OnCardButtonClicked(object? sender, EventArgs e)
     {
         if (BindingContext is not GoalCardViewModel vm) return;
 
-        // Get tap position in ConfettiCanvas draw-space (= ContentPage content coords,
-        // below the Shell nav bar). Using the canvas as relativeTo avoids the Y offset
-        // that appears when using null (window coords, which include the nav bar height).
-        var canvas      = (Shell.Current?.CurrentPage as MainPage)?.ConfettiView;
-        var tapInCanvas = e.GetPosition(canvas) ?? e.GetPosition(null) ?? Point.Zero;
-        var tapInCard   = e.GetPosition(this)   ?? new Point(Width / 2, Height / 2);
-
-        // card top-left in canvas coords = tapInCanvas - tapInCard
-        // card centre in canvas coords   = top-left + (Width/2, Height/2)
-        vm.TapOrigin = new Point(
-            tapInCanvas.X - tapInCard.X + Width  / 2,
-            tapInCanvas.Y - tapInCard.Y + Height / 2);
+        var canvas = (Shell.Current?.CurrentPage as MainPage)?.ConfettiView;
+        var cardPosition = GetPositionRelativeTo(canvas);
+        vm.TapOrigin = cardPosition == null
+            ? new Point(Width / 2, Height / 2)
+            : new Point(
+                cardPosition.Value.X + Width / 2,
+                cardPosition.Value.Y + Height / 2);
 
         await this.ScaleToAsync(0.94, 60, Easing.SinOut);
-        vm.ToggleCommand.Execute(null);
+        await vm.ToggleCommand.ExecuteAsync(null);
         await this.ScaleToAsync(1.0, 150, Easing.SpringOut);
+    }
+
+    public Point? GetPositionRelativeTo(VisualElement? target)
+    {
+        if (target == null) return null;
+
+        var cardPosition = GetPositionInWindow(this);
+        var targetPosition = GetPositionInWindow(target);
+        return new Point(
+            cardPosition.X - targetPosition.X,
+            cardPosition.Y - targetPosition.Y);
+    }
+
+    public static Point GetPositionInWindow(VisualElement element)
+    {
+        var x = element.X;
+        var y = element.Y;
+        Element? current = element.Parent;
+        while (current is VisualElement visual)
+        {
+            x += visual.X;
+            y += visual.Y;
+            current = visual.Parent;
+        }
+
+        return new Point(x, y);
     }
 }

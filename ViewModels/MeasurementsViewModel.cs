@@ -9,6 +9,7 @@ namespace HealthGoalsTracker.ViewModels;
 public partial class MeasurementsViewModel : ObservableObject
 {
     public IMeasurementService MeasurementService;
+    public Func<string, string, Task> AlertHandler;
 
     [ObservableProperty]
     public partial DateTime EntryDate { get; set; } = DateTime.Today;
@@ -37,6 +38,7 @@ public partial class MeasurementsViewModel : ObservableObject
     public MeasurementsViewModel(IMeasurementService measurementService)
     {
         MeasurementService = measurementService;
+        AlertHandler = ShowPageAlertAsync;
     }
 
     public async Task LoadAsync()
@@ -153,8 +155,11 @@ public partial class MeasurementsViewModel : ObservableObject
 
     public async Task ShowAlertAsync(string title, string message)
     {
-        await GetCurrentPage().DisplayAlertAsync(title, message, "OK");
+        await AlertHandler(title, message);
     }
+
+    public static async Task ShowPageAlertAsync(string title, string message) =>
+        await GetCurrentPage().DisplayAlertAsync(title, message, "OK");
 
     public (double? Value, bool HasError, string FieldName) TryParseNullableDouble(
         string text,
