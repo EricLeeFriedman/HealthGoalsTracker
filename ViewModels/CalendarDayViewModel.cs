@@ -5,22 +5,22 @@ namespace HealthGoalsTracker.ViewModels
     public partial class CalendarDayViewModel : ObservableObject
     {
         [ObservableProperty]
-        DateOnly _date;
+        public partial DateOnly Date { get; set; }
 
         // True for padding cells at the start of the month (no data, no tap)
         [ObservableProperty]
-        bool _isEmpty;
+        public partial bool IsEmpty { get; set; }
 
         // True when the date is in the future
         [ObservableProperty]
-        bool _isFuture;
+        public partial bool IsFuture { get; set; }
 
         [ObservableProperty]
-        bool _isSelected;
+        public partial bool IsSelected { get; set; }
 
         // Null → no data recorded (light grey)
         [ObservableProperty]
-        double? _completionPercent;
+        public partial double? CompletionPercent { get; set; }
 
         public string DayLabel => IsEmpty ? "" : Date.Day.ToString();
 

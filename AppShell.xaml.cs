@@ -33,6 +33,12 @@ namespace HealthGoalsTracker
             });
             Items.Add(new ShellContent
             {
+                Title = "📊  Measurements",
+                Content = services.GetRequiredService<MeasurementsPage>(),
+                Route = "measurements"
+            });
+            Items.Add(new ShellContent
+            {
                 Title = "🔔  Notifications",
                 Content = services.GetRequiredService<NotificationsPage>(),
                 Route = "notifications"

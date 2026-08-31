@@ -2,7 +2,7 @@
 
 ## Overview
 
-HealthGoalsTracker is an offline-first .NET MAUI app for **Android** (+ Windows for dev). Data lives in local SQLite and optionally syncs to a serverless Azure backend when the user is signed in and online.
+HealthGoalsTracker is an offline-first .NET MAUI app for **Android** (+ Windows for dev). Goal and body-measurement data currently lives in local SQLite. Authentication, cloud sync, and the serverless Azure backend shown below are planned future phases.
 
 ```
 ┌─────────────────────────────────┐
@@ -17,8 +17,8 @@ HealthGoalsTracker is an offline-first .NET MAUI app for **Android** (+ Windows 
 │  Services:                      │
 │    LocalGoalService (SQLite)  ◄─┼── Always active (offline-first)
 │    LocalMeasurementService    ◄─┼── Body measurements (SQLite)
-│    CloudSyncService           ◄─┼── Best-effort, async
-│    AuthService (MSAL)         ◄─┼── Google via Entra External ID
+│    CloudSyncService (planned) ◄─┼── Best-effort, async
+│    AuthService (planned)      ◄─┼── Google via Entra External ID
 │    NotificationScheduler      ◄─┼── Local platform scheduling
 └────────────┬────────────────────┘
              │ HTTPS (when online + signed in)
@@ -48,7 +48,15 @@ HealthGoalsTracker is an offline-first .NET MAUI app for **Android** (+ Windows 
 └─────────────────────────────────┘
 ```
 
-## Data Sync Strategy
+## Current Local Persistence
+
+- `LocalGoalService` owns goals, daily records, goal-entry snapshots, settings, and notification schedules.
+- `LocalMeasurementService` owns `BodyMeasurement` rows in the same SQLite database.
+- Measurements are unique by `(UserId, Date)`. Saving the same date again updates the existing row.
+- `MeasurementsPage` currently provides date, optional weight, optional body-fat percentage, notes, and recent history.
+- The dual-axis measurement chart is not implemented yet; the page contains a placeholder for Phase 11b.
+
+## Planned Data Sync Strategy
 
 1. **App launch**: load today's `DailyRecord` from SQLite. If user is signed in and online, fetch any records modified on other devices since last sync.
 2. **Goal tap**: write to SQLite immediately (UI updates instantly). Fire-and-forget HTTP POST to sync endpoint.
@@ -61,7 +69,7 @@ Notifications are **locally scheduled** on the device — no server push require
 
 Azure Notification Hubs is reserved for future server-initiated pushes (e.g., streaks, achievements).
 
-## Azure Resource Group Layout
+## Planned Azure Resource Group Layout
 
 ```
 rg-healthgoalstracker-prod
@@ -72,9 +80,9 @@ rg-healthgoalstracker-prod
 └── st<uniqueid>hgt                  (Storage Account for Functions host)
 ```
 
-All resources are deployed via `/infra/main.bicep`.
+These resources and `/infra/main.bicep` are not implemented yet.
 
-## Authentication Flow
+## Planned Authentication Flow
 
 ```
 User taps "Sign in with Google"
@@ -99,7 +107,7 @@ User taps "Sign in with Google"
   /Platforms/Android
   /infra                     ← Bicep IaC
 
-/HealthGoalsTracker.Functions  ← Azure Functions backend (C#, isolated worker)
+/HealthGoalsTracker.Functions  ← Planned Azure Functions backend (C#, isolated worker)
   GoalsApi.cs
   SyncApi.cs
 ```
@@ -107,5 +115,5 @@ User taps "Sign in with Google"
 ## Build & Deploy
 
 - **Local dev**: `dotnet build -f net10.0-android` (or `net10.0-windows10.0.19041.0` for desktop testing)
-- **CI/CD**: GitHub Actions — build + test on PR; deploy Functions + Bicep on push to `main`
-- **Azure setup**: run `az deployment group create --template-file infra/main.bicep` once to provision all resources
+- **Current full build**: `dotnet build` builds Android and Windows on Windows.
+- **CI/CD and Azure deployment**: planned; no workflow or Bicep deployment is currently present.

@@ -9,13 +9,13 @@ namespace HealthGoalsTracker.ViewModels
     public partial class GoalBreakdownItem : ObservableObject
     {
         [ObservableProperty]
-        string _goalName = "";
+        public partial string GoalName { get; set; } = "";
 
         [ObservableProperty]
-        int _goalPoints;
+        public partial int GoalPoints { get; set; }
 
         [ObservableProperty]
-        bool _isCompleted;
+        public partial bool IsCompleted { get; set; }
 
         public string StatusIcon => IsCompleted ? "✅" : "❌";
     }
@@ -26,23 +26,23 @@ namespace HealthGoalsTracker.ViewModels
 
         [ObservableProperty]
         [NotifyPropertyChangedFor(nameof(MonthLabel))]
-        DateOnly _displayMonth;
+        public partial DateOnly DisplayMonth { get; set; }
 
         [ObservableProperty]
-        ObservableCollection<CalendarDayViewModel> _days = new();
+        public partial ObservableCollection<CalendarDayViewModel> Days { get; set; } = new();
 
         [ObservableProperty]
-        ObservableCollection<GoalBreakdownItem> _selectedDayGoals = new();
+        public partial ObservableCollection<GoalBreakdownItem> SelectedDayGoals { get; set; } = new();
 
         [ObservableProperty]
         [NotifyPropertyChangedFor(nameof(HasSelectedDay))]
-        CalendarDayViewModel? _selectedDay;
+        public partial CalendarDayViewModel? SelectedDay { get; set; }
 
         [ObservableProperty]
-        string _selectedDayLabel = "";
+        public partial string SelectedDayLabel { get; set; } = "";
 
         [ObservableProperty]
-        string _selectedDaySummary = "";
+        public partial string SelectedDaySummary { get; set; } = "";
 
         public bool HasSelectedDay => SelectedDay != null && !SelectedDay.IsEmpty && !SelectedDay.IsFuture;
 

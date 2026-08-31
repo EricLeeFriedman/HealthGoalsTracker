@@ -18,20 +18,19 @@ This file lives in the repo so any agent or developer on any machine can pick up
 | 8 | **Emoji goal cards + updated defaults** — `IconEmoji` + `IsWeeklyOnly` added to models; new 7+1 default goals with emojis and correct points; schema migration via `ALTER TABLE ADD COLUMN` + `UPDATE` patches for existing rows; `GoalCard` tile shows large emoji; Edit Emoji option; db bumped to `healthgoals_v2.db3` for clean reseed | `19f4750` + `cb53b80` |
 | 8b | **Confetti animation overhaul** — `ConfettiView` rewritten as `GraphicsView`+`IDrawable` (eliminates first-frame hitch); burst explosion from tapped card center using projectile arc physics; rain effect for all-goals-complete; concurrent burst support; 80% fall speed; canvas-relative Y coordinate fix; CRLF enforced | `3d1107e` + `5b90886` |
 | 9+10 | **Weekly scoring + main page header** — `GetWeeklyScoreAsync` (avg daily pts over days-with-data + min(training,3), max 17, as %); daily score correctly excludes `IsWeeklyOnly` goals; `GoalCard` shows `🗓 Weekly` badge; "Toggle Weekly-Only" in options menu; `AddGoalAsync` prompts for weekly-only; header shows `Today: X / 14` + `This week: 74%` | `698a3e2` |
+| 11a | **Body measurement storage and entry UI** — `BodyMeasurement`, SQLite-backed `IMeasurementService` / `LocalMeasurementService`, one measurement per user/date with update-on-resave behavior, entry form, recent-history list, Shell navigation, and DI wiring | This change |
+| Build cleanup | Replaced obsolete MAUI `Frame` usage, migrated CommunityToolkit observable fields to WinRT/AOT-compatible partial properties, and pinned patched SQLite native binaries for warning-free Android and Windows builds | This change |
 
 ---
 
 ## Remaining Phases
 
-### Phase 11 — Body Measurements Page
-- New `BodyMeasurement` model (Id, UserId, Date "yyyy-MM-dd", WeightLbs?, BodyFatPercent?, Notes?, UpdatedAt)
-- New `IMeasurementService` + `LocalMeasurementService` (SQLite)
-- Register both in `MauiProgram.cs`
-- New `MeasurementsViewModel` + `MeasurementsPage.xaml`:
-  - Entry form: date (defaults to today), weight (lbs), BF% — both optional; save button
-  - Recent entries list
-  - SkiaSharp dual-axis line chart (weight left axis, BF% right axis) — no new NuGet packages
-- Add **Measurements** item to the Shell flyout (`AppShell.xaml`)
+### Phase 11b — Body Measurement Chart
+- Replace the current chart placeholder with a dual-axis line chart:
+  - Weight on the left Y-axis
+  - Body-fat percentage on the right Y-axis
+  - Both series plotted by measurement date
+- Use MAUI `GraphicsView` or an already-approved graphics dependency; do not add a package without discussion.
 - **Remaining from Phase 10**: update `HistoryViewModel` + `HistoryPage.xaml` to show weekly score % in the day-breakdown panel
 
 ### Phase 12 — Authentication ⛔ NEEDS USER INTERVENTION
@@ -73,10 +72,10 @@ This file lives in the repo so any agent or developer on any machine can pick up
 | Topic | Detail |
 |-------|--------|
 | Platform | .NET MAUI, Android + Windows (dev only), .NET 10 |
-| Local data | SQLite via `sqlite-net-pcl`, `LocalGoalService` |
-| MVVM | `CommunityToolkit.Mvvm`, all members **public** (no private/protected — C-like style) |
+| Local data | SQLite via `sqlite-net-pcl`; `LocalGoalService` for goals/history and `LocalMeasurementService` for measurements |
+| MVVM | `CommunityToolkit.Mvvm`; observable state uses AOT-compatible partial properties; all members **public** except framework overrides that require narrower access |
 | Messaging | `WeakReferenceMessenger` for VM-to-View |
-| DI chain | `App` ← `AppShell` ← pages ← ViewModels ← `IGoalService` |
+| DI chain | `App` ← `AppShell` ← pages ← ViewModels ← local service interfaces |
 | Auth (future) | MSAL + Microsoft Entra External ID with Google social IDP |
 | Cloud (future) | Azure Functions (Consumption) + Cosmos DB (free tier) |
 | `UserId` | `"local"` placeholder throughout; `UpdateUserIdAsync()` migrates on first sign-in |
@@ -98,12 +97,12 @@ This file lives in the repo so any agent or developer on any machine can pick up
 | `Services/NotificationScheduler.cs` | Plugin.LocalNotification scheduling |
 | `ViewModels/MainViewModel.cs` | Main page logic (toggle, add, edit, delete, daily + weekly score) |
 | `ViewModels/HistoryViewModel.cs` | Calendar heatmap logic (includes weekly score for selected week) |
-| `ViewModels/MeasurementsViewModel.cs` | Body measurements entry + chart data |
+| `ViewModels/MeasurementsViewModel.cs` | Body measurement entry and recent-history state |
 | `ViewModels/NotificationsViewModel.cs` | Notification settings logic |
 | `Controls/ConfettiView.cs` | Pure MAUI particle confetti |
 | `Controls/GoalCard.xaml` | Goal card UI (emoji, red/green, weekly badge, press animation) |
 | `Views/HistoryPage.xaml` | Calendar heatmap page |
-| `Views/MeasurementsPage.xaml` | Body measurements page (entry form + SkiaSharp chart) |
+| `Views/MeasurementsPage.xaml` | Body measurements entry form, recent history, and chart placeholder |
 | `Views/NotificationsPage.xaml` | Notification settings page |
 | `AppShell.xaml.cs` | Flyout nav + menu actions |
 | `MauiProgram.cs` | All DI registrations |

@@ -11,13 +11,13 @@ namespace HealthGoalsTracker.ViewModels
         public NotificationSchedule Schedule = new();
 
         [ObservableProperty]
-        string _label = "";
+        public partial string Label { get; set; } = "";
 
         [ObservableProperty]
-        bool _isEnabled;
+        public partial bool IsEnabled { get; set; }
 
         [ObservableProperty]
-        TimeSpan _time;
+        public partial TimeSpan Time { get; set; }
 
         partial void OnIsEnabledChanged(bool value)
         {
@@ -43,10 +43,10 @@ namespace HealthGoalsTracker.ViewModels
         public IHealthNotificationService NotificationService;
 
         [ObservableProperty]
-        bool _notificationsEnabled;
+        public partial bool NotificationsEnabled { get; set; }
 
         [ObservableProperty]
-        ObservableCollection<NotificationItemViewModel> _items = new();
+        public partial ObservableCollection<NotificationItemViewModel> Items { get; set; } = new();
 
         public NotificationsViewModel(IGoalService goalService, IHealthNotificationService notificationService)
         {
@@ -104,4 +104,3 @@ namespace HealthGoalsTracker.ViewModels
             };
     }
 }
-

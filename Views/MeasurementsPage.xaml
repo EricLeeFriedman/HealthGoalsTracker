@@ -1,0 +1,53 @@
+<ContentPage
+    x:Class="HealthGoalsTracker.Views.MeasurementsPage"
+    Title="Body Measurements"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    x:Name="ThisPage">
+
+    <ScrollView>
+        <VerticalStackLayout Padding="20" Spacing="15">
+            <!-- Entry Form Section -->
+            <Border Stroke="#D3D3D3" StrokeShape="RoundRectangle 8" Padding="15">
+                <VerticalStackLayout Spacing="10">
+                    <Label Text="Log Measurement" FontSize="1.2" FontAttributes="Bold" />
+                    
+                    <Label Text="Date:" />
+                    <DatePicker Date="{Binding SelectedDate}" Format="yyyy-MM-dd" />
+
+                    <Label Text="Weight (lbs):" />
+                    <Entry Placeholder="e.g. 180" Keyboard="Numeric" Text="{Binding WeightLbs}"/>
+
+                    <Label Text="Body Fat %:" />
+                    <Entry Placeholder="e.g. 22" Keyboard="Numeric" Text="{Binding BodyFatPercent}"/>
+
+                    <Label Text="Notes:" />
+                    <Editor Text="{Binding Notes}" HeightRequest="100" />
+
+                    <Button Text="Save Measurement" Command="{Binding SaveMeasurementCommand}" 
+                            BackgroundColor="#5D3FD3" TextColor="White" />
+                </VerticalStackLayout>
+            </Border>
+
+            <!-- Chart Placeholder (SkiaSharp) -->
+            <Border Stroke="#D3D3D3" StrokeShape="RoundRectangle 8" Padding="10">
+                <Label Text="Chart Area (SkiaSharp Implementation)" 
+                       HorizontalOptions="Center" VerticalOptions="Center"/>
+            </Border>
+
+            <!-- List of Recent Entries -->
+            <Label Text="Recent History" FontSize="1.2" FontAttributes="Bold" />
+            <CollectionView ItemsSource="{Binding Measurements}">
+                <CollectionView.ItemTemplate>
+                    <DataTemplate>
+                        <HorizontalStackLayout Padding="10">
+                            <Label Text="{Binding Date}" WidthRequest="100"/>
+                            <Label Text="{Binding WeightLbs, StringFormat='{0} lbs'}" />
+                            <Label Text="{Binding BodyFatPercent, StringFormat='{0}%'}" Margin="20,0" />
+                        </HorizontalStackLayout>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+            </CollectionView>
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>
