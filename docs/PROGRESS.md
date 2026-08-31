@@ -21,10 +21,11 @@ This file lives in the repo so any agent or developer on any machine can pick up
 | 11 | **Body measurements** — `BodyMeasurement`, SQLite-backed `IMeasurementService` / `LocalMeasurementService`, one measurement per user/date with update-on-resave behavior, entry form, recent-history list, Shell navigation, DI wiring, and a MAUI `GraphicsView` dual-axis chart supporting sparse weight/body-fat series | `abad07b` + `a809405` |
 | Build cleanup | Replaced obsolete MAUI `Frame` usage, migrated CommunityToolkit observable fields to WinRT/AOT-compatible partial properties, and pinned patched SQLite native binaries for warning-free Android and Windows builds | `abad07b` |
 | 10 follow-up | **History weekly score** — selected-day breakdown shows the canonical Monday–Sunday weekly percentage and date range, including weeks where the selected day has no record | `269bc7a` |
-| Test foundation | **Automated feature coverage** — 101 requirement-driven Windows-targeted xUnit cases cover default goals, CRUD/snapshots/reset/migrations, daily and weekly scoring, history/calendar presentation, settings and notification editing/scheduling, measurement validation/persistence/view state/chart math, exports, and diagnostics; the Windows smoke test covers Home, Reset Today, Measurements, History, and Notifications | `b15c63d` + `70f6014` + current working tree |
+| Test foundation | **Automated feature coverage** — 102 requirement-driven Windows-targeted xUnit cases cover default goals, CRUD/snapshots/reset/migrations, concurrent first access, daily and weekly scoring, history/calendar presentation, settings and notification editing/scheduling, measurement validation/persistence/view state/chart math, exports, and diagnostics | `b15c63d` + `70f6014` + current working tree |
 | Diagnostics | **Persistent runtime diagnostics** — bounded rotating file logs for lifecycle, page-load, persistence, notification, export, and unhandled-error events; excludes health values and identifiers; Shell action exports a stable log snapshot | `2ebcf5b` |
 | Runtime verification | **Windows + Android smoke verification** — isolated Windows UI Automation through Home/Measurements/History with synthetic persistence and screenshots; Android API 36 deployment with screenshot, UI hierarchy, app diagnostics, notification scheduling, and logcat inspection | `7ba9ddc` + `eb1ff42` |
 | Windows visual verification | **Cross-theme rendering coverage** — expanded the Windows product run to verify the complete flyout, screenshot contrast, calendar labels and seven-column geometry, measurement content, notification labels, persisted state, and diagnostics; fixed white-on-white Windows rendering by making the light-only visual design explicit and using contrasting calendar text | current working tree |
+| Shared live product tests | **Cross-platform feature verification** — `scripts/live-tests/features.json` defines eight shared product outcomes; Windows UI Automation and Android ADB/UIAutomator runners execute the same catalog and emit screenshots, diagnostics, process logs, and machine-readable result reports. The first repeatable Android run exposed and fixed concurrent creation of today's record during startup. | current working tree |
 | Cloud contract | **Authentication and synchronization design** — token trust boundary, versioned API routes, sync envelopes, idempotency, conflict/retry behavior, Cosmos layout, and diagnostic privacy rules documented before implementation | `e46858e` |
 
 ---
@@ -109,7 +110,10 @@ This file lives in the repo so any agent or developer on any machine can pick up
 | `Views/MeasurementsPage.xaml` | Body measurements entry form, dual-axis chart, and recent history |
 | `Views/NotificationsPage.xaml` | Notification settings page |
 | `HealthGoalsTracker.Tests/` | Requirement-driven xUnit coverage for goal workflows, scoring, history, measurements, notifications, exports, diagnostics, and presentation models |
+| `scripts/live-tests/features.json` | Canonical feature requirements shared by live platform runners |
 | `scripts/verify-windows.ps1` | Isolated Windows UI automation, screenshots, and diagnostic assertions |
+| `scripts/verify-android.ps1` | Self-contained Android deployment, UIAutomator workflows, screenshots, alarms, diagnostics, and logcat assertions |
+| `docs/LIVE-TEST-PLAN.md` | Human-readable live verification contract and runner guidance |
 | `AppShell.xaml.cs` | Flyout nav + menu actions |
 | `MauiProgram.cs` | All DI registrations |
 | `.github/copilot-instructions.md` | Copilot context (goals, models, conventions) |

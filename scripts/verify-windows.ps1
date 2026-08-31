@@ -12,6 +12,19 @@ $stderrPath = Join-Path $outputPath 'dotnet-run.stderr.log'
 $startedAt = Get-Date
 $runner = $null
 $app = $null
+$requiredFeatures = @(
+    'app.launch',
+    'home.initial-state',
+    'navigation.flyout',
+    'goals.complete-and-reset',
+    'measurements.save-and-display',
+    'history.calendar',
+    'notifications.configuration',
+    'diagnostics.runtime'
+)
+
+. (Join-Path $PSScriptRoot 'live-tests\common.ps1')
+Initialize-LiveTestRun 'windows' $requiredFeatures
 
 New-Item -ItemType Directory -Path $outputPath -Force | Out-Null
 New-Item -ItemType Directory -Path $dataPath -Force | Out-Null
@@ -355,6 +368,7 @@ try {
 
     $root = Wait-AppRoot
     [HealthGoalsUiNative]::SetForegroundWindow($app.MainWindowHandle) | Out-Null
+    Complete-LiveTestFeature 'app.launch' 'Windows process launched and Home automation tree became ready.'
 
     $dailyScore = Wait-ElementNameMatches $root 'DailyScore' '^Today:\s*\d+\s*/\s*\d+$'
     [string]$initialDailyScore = $dailyScore.Current.Name
@@ -371,6 +385,7 @@ try {
         Assert-VisibleName $root $requiredHomeText | Out-Null
     }
     Save-Screenshot '01-home'
+    Complete-LiveTestFeature 'home.initial-state' '01-home.png; default goals and Today: 0 / 14.'
 
     Open-Navigation $root
     foreach ($flyoutItem in @(
@@ -399,6 +414,7 @@ try {
     $homeItem.GetCurrentPattern(
         [System.Windows.Automation.SelectionItemPattern]::Pattern).Select()
     Start-Sleep -Milliseconds 500
+    Complete-LiveTestFeature 'navigation.flyout' '02-flyout.png; all eight items present with screenshot contrast.'
 
     Invoke-Element $root 'ToggleGoal'
     $completedScore = Wait-ElementNameMatches $root 'DailyScore' '^Today:\s*3\s*/\s*14$'
@@ -414,6 +430,7 @@ try {
     [string]$resetScoreText = $resetScore.Current.Name
     Start-Sleep -Seconds 1
     Save-Screenshot '03-reset-today'
+    Complete-LiveTestFeature 'goals.complete-and-reset' '03-reset-today.png; score changed 0/14 -> 3/14 -> 0/14.'
 
     Select-NavigationItem $root '📊  Measurements'
     Set-ElementValue $root 'MeasurementWeight' '180'
@@ -434,6 +451,7 @@ try {
     Find-ElementByName $root 'Trend' | Out-Null
     Find-ElementByName $root 'Recent Entries' | Out-Null
     Save-Screenshot '04-measurements'
+    Complete-LiveTestFeature 'measurements.save-and-display' '04-measurements.png; saved values visible in recent history.'
 
     Select-NavigationItem $root '📅  History'
     $historyMonth = Assert-VisibleId $root 'HistoryMonth'
@@ -463,6 +481,7 @@ try {
     }
     [string]$weeklySummaryText = $weeklySummary.Current.Name
     Save-Screenshot '06-history-detail'
+    Complete-LiveTestFeature 'history.calendar' '05-history-calendar.png and 06-history-detail.png; labels, geometry, contrast, and detail passed.'
 
     Select-NavigationItem $root '🔔  Notifications'
     foreach ($notificationText in @(
@@ -477,6 +496,7 @@ try {
     }
     Start-Sleep -Seconds 1
     Save-Screenshot '07-notifications'
+    Complete-LiveTestFeature 'notifications.configuration' '07-notifications.png; all configured notification types visible.'
 
     $diagnosticLog = Join-Path $dataPath 'diagnostics\healthgoals.log'
     $requiredEvents = @(
@@ -499,6 +519,10 @@ try {
     if ($logContents -match 'Synthetic Windows verification|180 lbs|20%') {
         throw 'Diagnostic log contains synthetic health values.'
     }
+    Complete-LiveTestFeature 'diagnostics.runtime' 'Diagnostic events present without synthetic health values.'
+    Write-LiveTestReport `
+        (Join-Path $outputPath 'live-test-results.json') `
+        $requiredFeatures
 
     @(
         'Windows runtime verification passed.'

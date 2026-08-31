@@ -1,0 +1,53 @@
+{
+  "schemaVersion": 1,
+  "features": [
+    {
+      "id": "app.launch",
+      "title": "Application launch",
+      "requirement": "The application starts with a usable Home page and no fatal runtime errors.",
+      "platforms": [ "windows", "android" ]
+    },
+    {
+      "id": "home.initial-state",
+      "title": "Home initial state",
+      "requirement": "A clean profile shows the default goals and a daily score of 0 / 14.",
+      "platforms": [ "windows", "android" ]
+    },
+    {
+      "id": "navigation.flyout",
+      "title": "Flyout navigation",
+      "requirement": "Every implemented flyout item is present, readable, and can navigate to its page.",
+      "platforms": [ "windows", "android" ]
+    },
+    {
+      "id": "goals.complete-and-reset",
+      "title": "Complete and reset a goal",
+      "requirement": "Completing Sleep changes its card state and score to 3 / 14; Reset Today restores 0 / 14.",
+      "platforms": [ "windows", "android" ]
+    },
+    {
+      "id": "measurements.save-and-display",
+      "title": "Save a body measurement",
+      "requirement": "A valid weight and body-fat entry persists and appears in measurement history.",
+      "platforms": [ "windows", "android" ]
+    },
+    {
+      "id": "history.calendar",
+      "title": "History calendar",
+      "requirement": "History shows readable weekday headers, a seven-column calendar, its legend, and selected-week detail.",
+      "platforms": [ "windows", "android" ]
+    },
+    {
+      "id": "notifications.configuration",
+      "title": "Notification configuration",
+      "requirement": "All configured notification types render; supported platforms receive permission and four schedules.",
+      "platforms": [ "windows", "android" ]
+    },
+    {
+      "id": "diagnostics.runtime",
+      "title": "Runtime diagnostics",
+      "requirement": "Expected workflow events are recorded without health values, identifiers, crashes, or unhandled exceptions.",
+      "platforms": [ "windows", "android" ]
+    }
+  ]
+}

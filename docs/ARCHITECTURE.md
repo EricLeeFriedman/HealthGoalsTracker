@@ -94,10 +94,14 @@ scheduling is enabled on the primary Android target.
   share sheet for inspection after a run.
 - DEBUG builds accept `HEALTHGOALSTRACKER_DATA_DIR` to isolate runtime verification from
   real application data. `scripts/verify-windows.ps1` uses this override with Windows UI
-  Automation and writes ignored screenshots, process output, logs, and a summary under
-  a timestamped directory below `artifacts/windows-verification`. The verifier checks
-  flyout item completeness and screenshot contrast, calendar labels and seven-column
-  geometry, page-specific content, persisted UI state, and diagnostic events.
+  Automation. `scripts/verify-android.ps1` builds a self-contained APK and uses ADB plus
+  UIAutomator against a booted emulator or device. Both runners consume the feature
+  requirements in `scripts/live-tests/features.json`, write a machine-readable result
+  report, and collect ignored screenshots and logs beneath `artifacts`.
+- Live runs check flyout completeness and readability, calendar labels and seven-column
+  geometry, goal completion/reset, measurement persistence, notification configuration,
+  diagnostic privacy, and fatal process errors. Platform-specific drivers implement
+  native interaction details without redefining expected product behavior.
 
 ## Visual Theme
 
@@ -146,7 +150,9 @@ User taps "Sign in with Google"
 
 /HealthGoalsTracker.Tests    ← Requirement-driven feature, service, and presentation tests
 /scripts
-  verify-windows.ps1         ← Isolated Windows UI smoke verification
+  /live-tests                ← Shared feature catalog and result helpers
+  verify-windows.ps1         ← Isolated Windows UI verification
+  verify-android.ps1         ← ADB/UIAutomator Android verification
 /docs
   ARCHITECTURE.md
   CLOUD-CONTRACTS.md
@@ -164,9 +170,13 @@ User taps "Sign in with Google"
 - **Automated tests**: `dotnet test HealthGoalsTracker.Tests\HealthGoalsTracker.Tests.csproj`
   covers goal lifecycle and scoring, history presentation, measurements, notification
   settings, exports, diagnostics, and UI-facing model state.
-- **Windows UI smoke test**: `.\scripts\verify-windows.ps1` exercises Home goal completion
+- **Windows live test**: `.\scripts\verify-windows.ps1` exercises Home goal completion
   and reset, the complete Shell flyout, Measurements, the History calendar and detail,
   and Notifications. It verifies visible content, flyout screenshot contrast, calendar
   geometry and date contrast, persisted state, and page-load diagnostics. The script
   writes ignored screenshots and diagnostics beneath `artifacts/windows-verification`.
+- **Android live test**: `.\scripts\verify-android.ps1` builds and installs a standalone
+  APK, resets only the app's test data, and exercises the same shared feature contract
+  with UIAutomator selectors. It also checks notification permission, four scheduled
+  alarms, app diagnostics, and app-scoped logcat errors.
 - **CI/CD and Azure deployment**: planned; no workflow or Bicep deployment is currently present.
