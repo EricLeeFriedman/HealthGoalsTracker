@@ -26,10 +26,10 @@ HealthGoalsTracker is an offline-first .NET MAUI app for **Android** (+ Windows 
 ┌─────────────────────────────────┐
 │      Azure Functions (API)      │
 │                                 │
-│  POST /api/sync                 │  ← Upsert goals + daily records
-│  GET  /api/records?from=&to=    │  ← Fetch history for a date range
-│  GET  /api/goals                │  ← Fetch user's goal list
-│  POST /api/goals                │  ← Save goal list
+│  POST /api/v1/sync              │  ← Push/pull all synchronized data
+│  GET  /api/v1/records           │  ← Fetch history for a date range
+│  GET  /api/v1/goals             │  ← Fetch user's goal list
+│  GET  /api/v1/measurements      │  ← Fetch body measurement history
 └────────────┬────────────────────┘
              │
              ▼
@@ -38,6 +38,7 @@ HealthGoalsTracker is an offline-first .NET MAUI app for **Android** (+ Windows 
 │                                 │
 │  Container: goals               │  PK: /userId
 │  Container: dailyRecords        │  PK: /userId  SK: date
+│  Container: measurements        │  PK: /userId
 └─────────────────────────────────┘
              ▲
 ┌─────────────────────────────────┐
@@ -63,6 +64,9 @@ HealthGoalsTracker is an offline-first .NET MAUI app for **Android** (+ Windows 
 2. **Goal tap**: write to SQLite immediately (UI updates instantly). Fire-and-forget HTTP POST to sync endpoint.
 3. **Goal edits**: same pattern — local-first, async cloud sync.
 4. **Conflict resolution**: last-write-wins, keyed by `UpdatedAt` timestamp.
+
+The authoritative authentication, API payload, retry, privacy, and Cosmos partitioning
+rules are defined in [`CLOUD-CONTRACTS.md`](CLOUD-CONTRACTS.md).
 
 ## Push Notifications
 

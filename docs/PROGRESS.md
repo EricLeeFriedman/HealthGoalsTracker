@@ -18,12 +18,13 @@ This file lives in the repo so any agent or developer on any machine can pick up
 | 8 | **Emoji goal cards + updated defaults** — `IconEmoji` + `IsWeeklyOnly` added to models; new 7+1 default goals with emojis and correct points; schema migration via `ALTER TABLE ADD COLUMN` + `UPDATE` patches for existing rows; `GoalCard` tile shows large emoji; Edit Emoji option; db bumped to `healthgoals_v2.db3` for clean reseed | `19f4750` + `cb53b80` |
 | 8b | **Confetti animation overhaul** — `ConfettiView` rewritten as `GraphicsView`+`IDrawable` (eliminates first-frame hitch); burst explosion from tapped card center using projectile arc physics; rain effect for all-goals-complete; concurrent burst support; 80% fall speed; canvas-relative Y coordinate fix; CRLF enforced | `3d1107e` + `5b90886` |
 | 9+10 | **Weekly scoring + main page header** — `GetWeeklyScoreAsync` (avg daily pts over days-with-data + min(training,3), max 17, as %); daily score correctly excludes `IsWeeklyOnly` goals; `GoalCard` shows `🗓 Weekly` badge; "Toggle Weekly-Only" in options menu; `AddGoalAsync` prompts for weekly-only; header shows `Today: X / 14` + `This week: 74%` | `698a3e2` |
-| 11 | **Body measurements** — `BodyMeasurement`, SQLite-backed `IMeasurementService` / `LocalMeasurementService`, one measurement per user/date with update-on-resave behavior, entry form, recent-history list, Shell navigation, DI wiring, and a MAUI `GraphicsView` dual-axis chart supporting sparse weight/body-fat series | `abad07b` + this change |
-| Build cleanup | Replaced obsolete MAUI `Frame` usage, migrated CommunityToolkit observable fields to WinRT/AOT-compatible partial properties, and pinned patched SQLite native binaries for warning-free Android and Windows builds | This change |
-| 10 follow-up | **History weekly score** — selected-day breakdown shows the canonical Monday–Sunday weekly percentage and date range, including weeks where the selected day has no record | This change |
-| Test foundation | **Automated business-logic coverage** — Windows-targeted xUnit project covers measurement upsert/order behavior, weekly averaging/session caps/user isolation, Monday week boundaries, and chart range handling | This change |
-| Diagnostics | **Persistent runtime diagnostics** — bounded rotating file logs for lifecycle, page-load, persistence, notification, export, and unhandled-error events; excludes health values and identifiers; Shell action exports a stable log snapshot | This change |
-| Runtime verification | **Repeatable Windows smoke test** — DEBUG-only isolated data directory, stable automation IDs, native UI Automation through Home/Measurements/History, synthetic measurement persistence, screenshots, and diagnostic-event/privacy assertions | This change |
+| 11 | **Body measurements** — `BodyMeasurement`, SQLite-backed `IMeasurementService` / `LocalMeasurementService`, one measurement per user/date with update-on-resave behavior, entry form, recent-history list, Shell navigation, DI wiring, and a MAUI `GraphicsView` dual-axis chart supporting sparse weight/body-fat series | `abad07b` + `a809405` |
+| Build cleanup | Replaced obsolete MAUI `Frame` usage, migrated CommunityToolkit observable fields to WinRT/AOT-compatible partial properties, and pinned patched SQLite native binaries for warning-free Android and Windows builds | `abad07b` |
+| 10 follow-up | **History weekly score** — selected-day breakdown shows the canonical Monday–Sunday weekly percentage and date range, including weeks where the selected day has no record | `269bc7a` |
+| Test foundation | **Automated business-logic coverage** — Windows-targeted xUnit project covers measurement upsert/order behavior, weekly averaging/session caps/user isolation, Monday week boundaries, and chart range handling | `b15c63d` |
+| Diagnostics | **Persistent runtime diagnostics** — bounded rotating file logs for lifecycle, page-load, persistence, notification, export, and unhandled-error events; excludes health values and identifiers; Shell action exports a stable log snapshot | `2ebcf5b` |
+| Runtime verification | **Repeatable Windows smoke test** — DEBUG-only isolated data directory, stable automation IDs, native UI Automation through Home/Measurements/History, synthetic measurement persistence, screenshots, and diagnostic-event/privacy assertions | `7ba9ddc` |
+| Cloud contract | **Authentication and synchronization design** — token trust boundary, versioned API routes, sync envelopes, idempotency, conflict/retry behavior, Cosmos layout, and diagnostic privacy rules documented before implementation | This change |
 
 ---
 
@@ -42,16 +43,20 @@ This file lives in the repo so any agent or developer on any machine can pick up
 - Google sign-in via Entra External ID as social IDP (no Xamarin.Essentials needed)
 - Hamburger menu: Log In / Log Out items (conditional on auth state)
 - `LocalGoalService.UpdateUserIdAsync()` migration hook called after first sign-in to re-stamp local data with the real user ID
+- Follow the trust boundary and authentication outcomes in `docs/CLOUD-CONTRACTS.md`
 
 ### Phase 13 — Azure Functions Backend ⛔ NEEDS AZURE SUBSCRIPTION
 - Azure Functions (Consumption) + Cosmos DB (free tier, 1000 RU/s)
-- Endpoints: `POST /sync`, `GET /records`, `GET /goals`, `POST /goals`
+- Versioned endpoints: `POST /api/v1/sync`, `GET /api/v1/records`, `GET /api/v1/goals`, `GET /api/v1/measurements`
 - JWT validation via Entra External ID issuer
+- Contract tests for validation, authenticated partitioning, and idempotent replay
 
 ### Phase 14 — Cloud Sync (depends on 12 + 13)
 - `CloudSyncService`: fire-and-forget HTTP POST to Azure Functions after every local write
 - Conflict resolution: last-write-wins by `UpdatedAt`
 - Offline queue: retry on next app launch if request fails
+- Sync body measurements along with goals and daily records
+- Follow cursor, retry, conflict, and privacy rules in `docs/CLOUD-CONTRACTS.md`
 
 ### Phase 15 — Bicep IaC ⛔ NEEDS AZURE
 - `/infra/main.bicep` provisioning all Azure resources (Functions, Cosmos DB, Entra app registration)
@@ -107,4 +112,5 @@ This file lives in the repo so any agent or developer on any machine can pick up
 | `MauiProgram.cs` | All DI registrations |
 | `.github/copilot-instructions.md` | Copilot context (goals, models, conventions) |
 | `docs/ARCHITECTURE.md` | Architecture diagrams, data sync strategy |
+| `docs/CLOUD-CONTRACTS.md` | Planned authentication, API, synchronization, and privacy contract |
 | `docs/PROGRESS.md` | **This file** — phase tracker for agents |
