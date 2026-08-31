@@ -137,6 +137,81 @@ function Wait-ElementNameMatches(
     throw "Automation element '$AutomationId' did not match '$Pattern'. Last value: '$name'."
 }
 
+function Assert-ElementVisible(
+    [System.Windows.Automation.AutomationElement]$Element,
+    [string]$Description
+) {
+    $bounds = $Element.Current.BoundingRectangle
+    if ($Element.Current.IsOffscreen -or $bounds.Width -lt 1 -or $bounds.Height -lt 1) {
+        throw "'$Description' is not visibly rendered. Bounds: $bounds."
+    }
+}
+
+function Assert-VisibleName(
+    [System.Windows.Automation.AutomationElement]$Root,
+    [string]$Name
+) {
+    $element = Find-ElementByName $Root $Name
+    Assert-ElementVisible $element $Name
+    return $element
+}
+
+function Assert-VisibleId(
+    [System.Windows.Automation.AutomationElement]$Root,
+    [string]$AutomationId
+) {
+    $element = Find-ElementById $Root $AutomationId
+    Assert-ElementVisible $element $AutomationId
+    return $element
+}
+
+function Assert-CalendarGeometry(
+    [System.Windows.Automation.AutomationElement]$Root,
+    [DateTime]$Month
+) {
+    $columnX = @{}
+    $rowY = @{}
+    $daysInMonth = [DateTime]::DaysInMonth($Month.Year, $Month.Month)
+
+    for ($day = 1; $day -le $daysInMonth; $day++) {
+        $date = [DateTime]::new($Month.Year, $Month.Month, $day)
+        $element = Assert-VisibleId $Root "HistoryDay$($date.ToString('yyyyMMdd'))"
+        $bounds = $element.Current.BoundingRectangle
+        $column = [int]$date.DayOfWeek
+        $row = [int][Math]::Floor(
+            (([int]([DateTime]::new($Month.Year, $Month.Month, 1).DayOfWeek)) + $day - 1) / 7)
+
+        if ($columnX.ContainsKey($column)) {
+            if ([Math]::Abs($columnX[$column] - $bounds.Left) -gt 3) {
+                throw "Calendar day $day is not aligned in weekday column $column."
+            }
+        }
+        else {
+            $columnX[$column] = $bounds.Left
+        }
+
+        if ($rowY.ContainsKey($row)) {
+            if ([Math]::Abs($rowY[$row] - $bounds.Top) -gt 3) {
+                throw "Calendar day $day is not aligned in calendar row $row."
+            }
+        }
+        else {
+            $rowY[$row] = $bounds.Top
+        }
+    }
+
+    if ($columnX.Count -ne 7) {
+        throw "Calendar rendered $($columnX.Count) columns instead of 7."
+    }
+
+    $orderedColumns = 0..6 | ForEach-Object { $columnX[$_] }
+    for ($column = 1; $column -lt 7; $column++) {
+        if ($orderedColumns[$column] -le $orderedColumns[$column - 1]) {
+            throw 'Calendar weekday columns are not ordered left to right.'
+        }
+    }
+}
+
 function Open-Navigation(
     [System.Windows.Automation.AutomationElement]$Root
 ) {
@@ -220,6 +295,51 @@ function Save-Screenshot([string]$Name) {
     }
 }
 
+function Assert-ScreenshotRegionHasDarkPixels(
+    [string]$ScreenshotName,
+    [System.Windows.Automation.AutomationElement]$Element,
+    [string]$Description,
+    [double]$LeftInset = 0
+) {
+    $windowBounds = [HealthGoalsUiNative+RECT]::new()
+    [HealthGoalsUiNative]::GetWindowRect(
+        $script:app.MainWindowHandle,
+        [ref]$windowBounds) | Out-Null
+    $bounds = $Element.Current.BoundingRectangle
+    $image = [System.Drawing.Bitmap]::FromFile(
+        (Join-Path $outputPath "$ScreenshotName.png"))
+    try {
+        $left = [Math]::Max(
+            0,
+            [int]($bounds.Left - $windowBounds.Left + ($bounds.Width * $LeftInset)))
+        $top = [Math]::Max(0, [int]($bounds.Top - $windowBounds.Top))
+        $right = [Math]::Min(
+            $image.Width - 1,
+            [int]($bounds.Right - $windowBounds.Left))
+        $bottom = [Math]::Min(
+            $image.Height - 1,
+            [int]($bounds.Bottom - $windowBounds.Top))
+        $darkPixels = 0
+
+        for ($x = $left; $x -le $right; $x += 2) {
+            for ($y = $top; $y -le $bottom; $y += 2) {
+                $pixel = $image.GetPixel($x, $y)
+                $luminance = (0.2126 * $pixel.R) + (0.7152 * $pixel.G) + (0.0722 * $pixel.B)
+                if ($luminance -lt 140) {
+                    $darkPixels++
+                }
+            }
+        }
+
+        if ($darkPixels -lt 10) {
+            throw "'$Description' has no readable dark content in screenshot '$ScreenshotName'."
+        }
+    }
+    finally {
+        $image.Dispose()
+    }
+}
+
 try {
     $previousDataPath = $env:HEALTHGOALSTRACKER_DATA_DIR
     $env:HEALTHGOALSTRACKER_DATA_DIR = $dataPath
@@ -241,7 +361,44 @@ try {
     if ($initialDailyScore -notmatch '^Today:\s*0\s*/\s*14$') {
         throw "Unexpected initial daily score: '$initialDailyScore'."
     }
+
+    foreach ($requiredHomeText in @(
+        'Slept at least 7 hours',
+        'Ate less than 2200 Calories',
+        'Ate at least 150g of Protein',
+        'Movement'
+    )) {
+        Assert-VisibleName $root $requiredHomeText | Out-Null
+    }
     Save-Screenshot '01-home'
+
+    Open-Navigation $root
+    foreach ($flyoutItem in @(
+        '🏠  Home',
+        '📅  History',
+        '📊  Measurements',
+        '🔔  Notifications',
+        '🔁  Reset Today',
+        '📤  Export Data',
+        '🩺  Export Diagnostics',
+        'ℹ️  About'
+    )) {
+        Assert-VisibleName $root $flyoutItem | Out-Null
+    }
+    Save-Screenshot '02-flyout'
+    foreach ($flyoutItem in @(
+        '🏠  Home',
+        '📅  History',
+        '📊  Measurements',
+        '🔔  Notifications'
+    )) {
+        $element = Find-ElementByName $root $flyoutItem
+        Assert-ScreenshotRegionHasDarkPixels '02-flyout' $element $flyoutItem 0.25
+    }
+    $homeItem = Find-ElementByName $root '🏠  Home'
+    $homeItem.GetCurrentPattern(
+        [System.Windows.Automation.SelectionItemPattern]::Pattern).Select()
+    Start-Sleep -Milliseconds 500
 
     Invoke-Element $root 'ToggleGoal'
     $completedScore = Wait-ElementNameMatches $root 'DailyScore' '^Today:\s*3\s*/\s*14$'
@@ -256,7 +413,7 @@ try {
     $resetScore = Wait-ElementNameMatches $root 'DailyScore' '^Today:\s*0\s*/\s*14$'
     [string]$resetScoreText = $resetScore.Current.Name
     Start-Sleep -Seconds 1
-    Save-Screenshot '02-reset-today'
+    Save-Screenshot '03-reset-today'
 
     Select-NavigationItem $root '📊  Measurements'
     Set-ElementValue $root 'MeasurementWeight' '180'
@@ -273,9 +430,29 @@ try {
     if ($historyText -notmatch '180 lbs' -or $historyText -notmatch '20%') {
         throw "Saved measurement was not visible in recent history: '$historyText'."
     }
-    Save-Screenshot '03-measurements'
+    Assert-VisibleName $root 'Log a body measurement' | Out-Null
+    Find-ElementByName $root 'Trend' | Out-Null
+    Find-ElementByName $root 'Recent Entries' | Out-Null
+    Save-Screenshot '04-measurements'
 
     Select-NavigationItem $root '📅  History'
+    $historyMonth = Assert-VisibleId $root 'HistoryMonth'
+    foreach ($weekday in @('Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa')) {
+        Assert-VisibleName $root $weekday | Out-Null
+    }
+    foreach ($legend in @('100%', '50–99%', '1–49%', '0%', 'No data')) {
+        Assert-VisibleName $root $legend | Out-Null
+    }
+    Assert-CalendarGeometry $root ([DateTime]::Today)
+    Save-Screenshot '05-history-calendar'
+    $firstDayId = "HistoryDay$(([DateTime]::new(
+        [DateTime]::Today.Year,
+        [DateTime]::Today.Month,
+        1)).ToString('yyyyMMdd'))"
+    Assert-ScreenshotRegionHasDarkPixels `
+        '05-history-calendar' `
+        (Find-ElementById $root $firstDayId) `
+        'First calendar day'
     $todayId = "HistoryDay$([DateTime]::Today.ToString('yyyyMMdd'))"
     Invoke-Element $root $todayId
     Start-Sleep -Seconds 1
@@ -285,11 +462,21 @@ try {
         throw "Weekly History summary was not visible: '$($weeklySummary.Current.Name)'."
     }
     [string]$weeklySummaryText = $weeklySummary.Current.Name
-    Save-Screenshot '04-history'
+    Save-Screenshot '06-history-detail'
 
     Select-NavigationItem $root '🔔  Notifications'
+    foreach ($notificationText in @(
+        'Push Notifications',
+        'Enable or disable all reminders',
+        'Nudge — first reminder',
+        'Nudge — second reminder',
+        'Daily summary reminder',
+        'Morning recap'
+    )) {
+        Assert-VisibleName $root $notificationText | Out-Null
+    }
     Start-Sleep -Seconds 1
-    Save-Screenshot '05-notifications'
+    Save-Screenshot '07-notifications'
 
     $diagnosticLog = Join-Path $dataPath 'diagnostics\healthgoals.log'
     $requiredEvents = @(

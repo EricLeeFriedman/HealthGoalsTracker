@@ -47,5 +47,17 @@ namespace HealthGoalsTracker.ViewModels
         }
 
         public Color BorderColor => IsSelected ? Color.FromArgb("#512BD4") : Colors.Transparent;
+
+        public Color TextColor
+        {
+            get
+            {
+                if (IsEmpty) return Colors.Transparent;
+                if (IsFuture || CompletionPercent == null) return Color.FromArgb("#333333");
+                if (CompletionPercent.Value >= 50 && CompletionPercent.Value < 100)
+                    return Color.FromArgb("#212121");
+                return Colors.White;
+            }
+        }
     }
 }

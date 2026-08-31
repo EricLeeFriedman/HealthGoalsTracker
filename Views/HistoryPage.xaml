@@ -78,7 +78,7 @@
                                 Padding="0"
                                 FontSize="13"
                                 FontAttributes="Bold"
-                                TextColor="White" />
+                                TextColor="{Binding TextColor}" />
                     </DataTemplate>
                 </CollectionView.ItemTemplate>
             </CollectionView>

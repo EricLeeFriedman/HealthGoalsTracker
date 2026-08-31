@@ -69,6 +69,26 @@ public class PresentationModelTests
     }
 
     [Fact]
+    public void CalendarDay_UsesReadableTextForLightBackgrounds()
+    {
+        var noData = new CalendarDayViewModel { Date = new DateOnly(2026, 8, 31) };
+        var future = new CalendarDayViewModel
+        {
+            Date = new DateOnly(2026, 9, 1),
+            IsFuture = true
+        };
+        var partial = new CalendarDayViewModel
+        {
+            Date = new DateOnly(2026, 8, 30),
+            CompletionPercent = 50
+        };
+
+        Assert.Equal(Color.FromArgb("#333333"), noData.TextColor);
+        Assert.Equal(Color.FromArgb("#333333"), future.TextColor);
+        Assert.Equal(Color.FromArgb("#212121"), partial.TextColor);
+    }
+
+    [Fact]
     public void GoalCard_ReflectsCompletionAndPointOrWeeklyBadge()
     {
         var card = new GoalCardViewModel { Points = 1 };

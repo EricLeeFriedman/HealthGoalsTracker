@@ -95,7 +95,16 @@ scheduling is enabled on the primary Android target.
 - DEBUG builds accept `HEALTHGOALSTRACKER_DATA_DIR` to isolate runtime verification from
   real application data. `scripts/verify-windows.ps1` uses this override with Windows UI
   Automation and writes ignored screenshots, process output, logs, and a summary under
-  a timestamped directory below `artifacts/windows-verification`.
+  a timestamped directory below `artifacts/windows-verification`. The verifier checks
+  flyout item completeness and screenshot contrast, calendar labels and seven-column
+  geometry, page-specific content, persisted UI state, and diagnostic events.
+
+## Visual Theme
+
+The current UI uses fixed light surfaces, so the application explicitly requests the
+light theme on every platform. Calendar day text selects a contrasting foreground for
+light no-data, future, and amber cells. This prevents Windows system dark mode from
+combining dark-theme foreground defaults with the app's white surfaces.
 
 ## Planned Azure Resource Group Layout
 
@@ -156,7 +165,8 @@ User taps "Sign in with Google"
   covers goal lifecycle and scoring, history presentation, measurements, notification
   settings, exports, diagnostics, and UI-facing model state.
 - **Windows UI smoke test**: `.\scripts\verify-windows.ps1` exercises Home goal completion
-  and reset, Measurements, and History; it also verifies Notifications navigation and
-  page-load diagnostics. The script writes ignored screenshots and
-  diagnostics beneath `artifacts/windows-verification`.
+  and reset, the complete Shell flyout, Measurements, the History calendar and detail,
+  and Notifications. It verifies visible content, flyout screenshot contrast, calendar
+  geometry and date contrast, persisted state, and page-load diagnostics. The script
+  writes ignored screenshots and diagnostics beneath `artifacts/windows-verification`.
 - **CI/CD and Azure deployment**: planned; no workflow or Bicep deployment is currently present.
