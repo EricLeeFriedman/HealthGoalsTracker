@@ -24,7 +24,7 @@ This file lives in the repo so any agent or developer on any machine can pick up
 | Test foundation | **Automated business-logic coverage** — Windows-targeted xUnit project covers measurement upsert/order behavior, weekly averaging/session caps/user isolation, Monday week boundaries, and chart range handling | `b15c63d` |
 | Diagnostics | **Persistent runtime diagnostics** — bounded rotating file logs for lifecycle, page-load, persistence, notification, export, and unhandled-error events; excludes health values and identifiers; Shell action exports a stable log snapshot | `2ebcf5b` |
 | Runtime verification | **Repeatable Windows smoke test** — DEBUG-only isolated data directory, stable automation IDs, native UI Automation through Home/Measurements/History, synthetic measurement persistence, screenshots, and diagnostic-event/privacy assertions | `7ba9ddc` |
-| Cloud contract | **Authentication and synchronization design** — token trust boundary, versioned API routes, sync envelopes, idempotency, conflict/retry behavior, Cosmos layout, and diagnostic privacy rules documented before implementation | This change |
+| Cloud contract | **Authentication and synchronization design** — token trust boundary, versioned API routes, sync envelopes, idempotency, conflict/retry behavior, Cosmos layout, and diagnostic privacy rules documented before implementation | `e46858e` |
 
 ---
 
