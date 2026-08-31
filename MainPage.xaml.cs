@@ -1,20 +1,23 @@
 ﻿using CommunityToolkit.Mvvm.Messaging;
 using HealthGoalsTracker.Messages;
 using HealthGoalsTracker.ViewModels;
+using Microsoft.Extensions.Logging;
 
 namespace HealthGoalsTracker
 {
     public partial class MainPage : ContentPage
     {
         public MainViewModel ViewModel;
+        public ILogger<MainPage> Logger;
 
         // Exposed so GoalCard can resolve tap coordinates in the canvas draw-space.
         public Controls.ConfettiView ConfettiView => ConfettiCanvas;
 
-        public MainPage(MainViewModel viewModel)
+        public MainPage(MainViewModel viewModel, ILogger<MainPage> logger)
         {
             InitializeComponent();
             ViewModel = viewModel;
+            Logger = logger;
             BindingContext = viewModel;
         }
 
@@ -28,6 +31,7 @@ namespace HealthGoalsTracker
                 MainThread.BeginInvokeOnMainThread(() => TriggerCelebration(msg.AllGoalsComplete, msg.CardTapOrigin)));
 
             await ViewModel.LoadAsync();
+            Logger.LogInformation("Main page loaded");
         }
 
         protected override void OnDisappearing()

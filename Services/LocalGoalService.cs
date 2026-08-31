@@ -1,5 +1,7 @@
 using SQLite;
 using HealthGoalsTracker.Models;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace HealthGoalsTracker.Services;
 
@@ -8,9 +10,13 @@ public class LocalGoalService : IGoalService
     public SQLiteAsyncConnection Database;
     public SemaphoreSlim InitLock = new(1, 1);
     public bool IsInitialized;
+    public ILogger<LocalGoalService> Logger;
 
-    public LocalGoalService(string dbPath)
+    public LocalGoalService(
+        string dbPath,
+        ILogger<LocalGoalService>? logger = null)
     {
+        Logger = logger ?? NullLogger<LocalGoalService>.Instance;
         SQLitePCL.Batteries_V2.Init();
         Database = new SQLiteAsyncConnection(dbPath,
             SQLiteOpenFlags.ReadWrite | SQLiteOpenFlags.Create | SQLiteOpenFlags.FullMutex);
@@ -63,6 +69,7 @@ public class LocalGoalService : IGoalService
 
             await SeedDefaultsAsync();
             IsInitialized = true;
+            Logger.LogInformation("Goal database initialized");
         }
         finally
         {
@@ -227,6 +234,7 @@ public class LocalGoalService : IGoalService
         entry.IsCompleted = !entry.IsCompleted;
         entry.UpdatedAt = DateTime.UtcNow;
         await Database.UpdateAsync(entry);
+        Logger.LogInformation("Goal completion state changed");
 
         // Recalculate cached sums on the parent record (weekly-only goals excluded from totals).
         var allEntries = await GetDailyEntriesAsync(record.Id);
@@ -384,6 +392,7 @@ public class LocalGoalService : IGoalService
         record.TotalPointsEarned = 0;
         record.UpdatedAt = DateTime.UtcNow;
         await Database.UpdateAsync(record);
+        Logger.LogInformation("Today's goal completion state reset");
     }
 
     // -------------------------------------------------------------------------
@@ -416,6 +425,7 @@ public class LocalGoalService : IGoalService
 
         double weeklyScore   = avgDailyPts + Math.Min(trainingSessions, 3);
         double weeklyPercent = weeklyScore / 17.0 * 100.0;
+        Logger.LogInformation("Weekly score calculated");
         return (weeklyScore, weeklyPercent);
     }
 

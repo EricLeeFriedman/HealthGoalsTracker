@@ -1,20 +1,30 @@
 using System.Text.Json;
 using HealthGoalsTracker.Services;
 using HealthGoalsTracker.Views;
+using Microsoft.Extensions.Logging;
 
 namespace HealthGoalsTracker
 {
     public partial class AppShell : Shell
     {
         public IGoalService GoalService;
+        public IDiagnosticsService DiagnosticsService;
+        public ILogger<AppShell> Logger;
 
-        public AppShell(IServiceProvider services, IGoalService goalService)
+        public AppShell(
+            IServiceProvider services,
+            IGoalService goalService,
+            IDiagnosticsService diagnosticsService,
+            ILogger<AppShell> logger)
         {
             InitializeComponent();
             GoalService = goalService;
+            DiagnosticsService = diagnosticsService;
+            Logger = logger;
 
             AddNavigationItems(services);
             AddActionItems();
+            Logger.LogInformation("Application shell initialized");
         }
 
         void AddNavigationItems(IServiceProvider services)
@@ -55,6 +65,10 @@ namespace HealthGoalsTracker
             exportItem.Clicked += OnExportDataClicked;
             Items.Add(exportItem);
 
+            var diagnosticsItem = new MenuItem { Text = "🩺  Export Diagnostics" };
+            diagnosticsItem.Clicked += OnExportDiagnosticsClicked;
+            Items.Add(diagnosticsItem);
+
             var aboutItem = new MenuItem { Text = "ℹ️  About" };
             aboutItem.Clicked += OnAboutClicked;
             Items.Add(aboutItem);
@@ -77,6 +91,7 @@ namespace HealthGoalsTracker
             if (!confirmed) return;
 
             await GoalService.ResetTodayAsync();
+            Logger.LogInformation("Reset Today completed");
 
             // Navigate home so MainPage reloads via OnAppearing.
             await GoToAsync("//home");
@@ -121,12 +136,38 @@ namespace HealthGoalsTracker
                     Title = "Health Goals Export",
                     File  = new ShareFile(path)
                 });
+                Logger.LogInformation("Data export prepared");
             }
             catch (Exception ex)
             {
+                Logger.LogError(ex, "Data export failed");
                 var page = Current?.CurrentPage;
                 if (page != null)
                     await page.DisplayAlertAsync("Export Failed", ex.Message, "OK");
+            }
+        }
+
+        public async void OnExportDiagnosticsClicked(object? sender, EventArgs e)
+        {
+            try
+            {
+                Logger.LogInformation("Diagnostics export requested");
+                var path = DiagnosticsService.CreateSnapshot(FileSystem.CacheDirectory);
+                await Share.Default.RequestAsync(new ShareFileRequest
+                {
+                    Title = "Health Goals Diagnostics",
+                    File = new ShareFile(path)
+                });
+            }
+            catch (Exception exception)
+            {
+                Logger.LogError(exception, "Diagnostics export failed");
+                var page = Current?.CurrentPage;
+                if (page != null)
+                    await page.DisplayAlertAsync(
+                        "Diagnostics Export Failed",
+                        exception.Message,
+                        "OK");
             }
         }
 

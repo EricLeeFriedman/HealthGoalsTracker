@@ -70,6 +70,18 @@ Notifications are **locally scheduled** on the device — no server push require
 
 Azure Notification Hubs is reserved for future server-initiated pushes (e.g., streaks, achievements).
 
+## Runtime Diagnostics
+
+- `DiagnosticsService` writes structured UTC log entries to
+  `FileSystem.AppDataDirectory/diagnostics/healthgoals.log`.
+- Logs rotate at 2 MB and retain four archives.
+- Application startup, page loads, persistence operations, exports, notification scheduling,
+  and unhandled exceptions are recorded.
+- Health values, goal names, notes, user identifiers, and database paths are intentionally
+  excluded from diagnostic messages.
+- The Shell's **Export Diagnostics** action creates a stable snapshot and opens the platform
+  share sheet for inspection after a run.
+
 ## Planned Azure Resource Group Layout
 
 ```
@@ -104,7 +116,7 @@ User taps "Sign in with Google"
   /ViewModels
   /Views                     ← HistoryPage, MeasurementsPage, NotificationsPage
   /Controls                  ← GoalCard, ConfettiView, MeasurementChartView
-  /Services                  ← IGoalService, LocalGoalService, IMeasurementService, LocalMeasurementService
+  /Services                  ← Local persistence, notifications, and bounded file diagnostics
   /Platforms/Android
   /infra                     ← Bicep IaC
 

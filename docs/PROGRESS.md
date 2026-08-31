@@ -22,6 +22,7 @@ This file lives in the repo so any agent or developer on any machine can pick up
 | Build cleanup | Replaced obsolete MAUI `Frame` usage, migrated CommunityToolkit observable fields to WinRT/AOT-compatible partial properties, and pinned patched SQLite native binaries for warning-free Android and Windows builds | This change |
 | 10 follow-up | **History weekly score** — selected-day breakdown shows the canonical Monday–Sunday weekly percentage and date range, including weeks where the selected day has no record | This change |
 | Test foundation | **Automated business-logic coverage** — Windows-targeted xUnit project covers measurement upsert/order behavior, weekly averaging/session caps/user isolation, Monday week boundaries, and chart range handling | This change |
+| Diagnostics | **Persistent runtime diagnostics** — bounded rotating file logs for lifecycle, page-load, persistence, notification, export, and unhandled-error events; excludes health values and identifiers; Shell action exports a stable log snapshot | This change |
 
 ---
 
@@ -89,6 +90,7 @@ This file lives in the repo so any agent or developer on any machine can pick up
 | `Services/LocalMeasurementService.cs` | SQLite implementation for body measurements |
 | `Services/IHealthNotificationService.cs` | `IHealthNotificationService` interface |
 | `Services/NotificationScheduler.cs` | Plugin.LocalNotification scheduling |
+| `Services/DiagnosticsService.cs` | Rotating persistent logger and exportable diagnostic snapshots |
 | `ViewModels/MainViewModel.cs` | Main page logic (toggle, add, edit, delete, daily + weekly score) |
 | `ViewModels/HistoryViewModel.cs` | Calendar heatmap logic (includes weekly score for selected week) |
 | `ViewModels/MeasurementsViewModel.cs` | Body measurement entry and recent-history state |

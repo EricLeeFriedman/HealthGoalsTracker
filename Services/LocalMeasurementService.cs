@@ -2,6 +2,8 @@ using SQLite;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using HealthGoalsTracker.Models;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace HealthGoalsTracker.Services;
 
@@ -10,9 +12,13 @@ public class LocalMeasurementService : IMeasurementService
     public SQLiteAsyncConnection Database;
     public SemaphoreSlim InitLock = new(1, 1);
     public bool IsInitialized;
+    public ILogger<LocalMeasurementService> Logger;
 
-    public LocalMeasurementService(string dbPath)
+    public LocalMeasurementService(
+        string dbPath,
+        ILogger<LocalMeasurementService>? logger = null)
     {
+        Logger = logger ?? NullLogger<LocalMeasurementService>.Instance;
         SQLitePCL.Batteries_V2.Init();
         Database = new SQLiteAsyncConnection(dbPath,
             SQLiteOpenFlags.ReadWrite | SQLiteOpenFlags.Create | SQLiteOpenFlags.FullMutex);
@@ -32,6 +38,7 @@ public class LocalMeasurementService : IMeasurementService
                 "CREATE UNIQUE INDEX IF NOT EXISTS IX_BodyMeasurement_UserDate ON BodyMeasurement (UserId, Date)");
 
             IsInitialized = true;
+            Logger.LogInformation("Measurement database initialized");
         }
         finally
         {
@@ -59,10 +66,12 @@ public class LocalMeasurementService : IMeasurementService
         {
             measurement.Id = existing.Id;
             await Database.UpdateAsync(measurement);
+            Logger.LogInformation("Existing measurement updated");
             return true;
         }
 
         await Database.InsertAsync(measurement);
+        Logger.LogInformation("New measurement saved");
         return true;
     }
 }

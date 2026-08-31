@@ -34,8 +34,19 @@ namespace HealthGoalsTracker
                 });
 
             var dbPath = Path.Combine(FileSystem.AppDataDirectory, "healthgoals_v2.db3");
-            builder.Services.AddSingleton<IGoalService>(_ => new LocalGoalService(dbPath));
-            builder.Services.AddSingleton<IMeasurementService>(_ => new LocalMeasurementService(dbPath));
+            var diagnostics = new DiagnosticsService(
+                Path.Combine(FileSystem.AppDataDirectory, "diagnostics", "healthgoals.log"));
+            builder.Services.AddSingleton<IDiagnosticsService>(diagnostics);
+            builder.Logging.AddProvider(new FileLoggerProvider(diagnostics));
+
+            builder.Services.AddSingleton<IGoalService>(services =>
+                new LocalGoalService(
+                    dbPath,
+                    services.GetRequiredService<ILogger<LocalGoalService>>()));
+            builder.Services.AddSingleton<IMeasurementService>(services =>
+                new LocalMeasurementService(
+                    dbPath,
+                    services.GetRequiredService<ILogger<LocalMeasurementService>>()));
             builder.Services.AddSingleton<IHealthNotificationService, NotificationScheduler>();
             builder.Services.AddSingleton<MainViewModel>();
             builder.Services.AddSingleton<HistoryViewModel>();
