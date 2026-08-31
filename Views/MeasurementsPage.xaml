@@ -1,66 +1,125 @@
-<ContentPage
-    x:Class="HealthGoalsTracker.Views.MeasurementsPage"
-    Title="Body Measurements"
-    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
-    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
-    xmlns:controls="clr-namespace:HealthGoalsTracker.Controls"
-    x:Name="ThisPage">
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:HealthGoalsTracker.ViewModels"
+             xmlns:models="clr-namespace:HealthGoalsTracker.Models"
+             xmlns:controls="clr-namespace:HealthGoalsTracker.Controls"
+             x:Class="HealthGoalsTracker.Views.MeasurementsPage"
+             x:Name="PageRoot"
+             x:DataType="vm:MeasurementsViewModel"
+             Title="Measurements"
+             BackgroundColor="#F5F5F5">
 
     <ScrollView>
-        <VerticalStackLayout Padding="20" Spacing="15">
-            <!-- Entry Form Section -->
-            <Border Stroke="#D3D3D3" StrokeShape="RoundRectangle 8" Padding="15">
-                <VerticalStackLayout Spacing="10">
-                    <Label Text="Log Measurement" FontSize="1.2" FontAttributes="Bold" />
-                    
-                    <Label Text="Date:" />
+        <VerticalStackLayout Spacing="12" Padding="16,12,16,20">
+
+            <Border Padding="16"
+                    StrokeShape="RoundRectangle 12"
+                    BackgroundColor="White"
+                    Stroke="#E0E0E0"
+                    StrokeThickness="1">
+                <VerticalStackLayout Spacing="12">
+                    <Label Text="Log a body measurement"
+                           FontSize="18"
+                           FontAttributes="Bold" />
+
                     <DatePicker AutomationId="MeasurementDate"
-                                Date="{Binding SelectedDate}"
+                                Date="{Binding EntryDate}"
                                 Format="yyyy-MM-dd" />
 
-                    <Label Text="Weight (lbs):" />
-                    <Entry AutomationId="MeasurementWeight"
-                           Placeholder="e.g. 180"
-                           Keyboard="Numeric"
-                           Text="{Binding WeightLbs}"/>
+                    <Grid ColumnDefinitions="*,*" ColumnSpacing="10">
+                        <Entry Grid.Column="0"
+                               AutomationId="MeasurementWeight"
+                               Text="{Binding WeightText}"
+                               Placeholder="Weight (lbs)"
+                               Keyboard="Numeric" />
+                        <Entry Grid.Column="1"
+                               AutomationId="MeasurementBodyFat"
+                               Text="{Binding BodyFatText}"
+                               Placeholder="Body Fat %"
+                               Keyboard="Numeric" />
+                    </Grid>
 
-                    <Label Text="Body Fat %:" />
-                    <Entry AutomationId="MeasurementBodyFat"
-                           Placeholder="e.g. 22"
-                           Keyboard="Numeric"
-                           Text="{Binding BodyFatPercent}"/>
-
-                    <Label Text="Notes:" />
                     <Editor AutomationId="MeasurementNotes"
                             Text="{Binding Notes}"
-                            HeightRequest="100" />
+                            Placeholder="Optional notes"
+                            AutoSize="TextChanges"
+                            MinimumHeightRequest="90" />
 
                     <Button AutomationId="SaveMeasurement"
                             Text="Save Measurement"
                             Command="{Binding SaveMeasurementCommand}"
-                            BackgroundColor="#5D3FD3" TextColor="White" />
+                            BackgroundColor="#512BD4"
+                            TextColor="White"
+                            CornerRadius="12"
+                            HeightRequest="48"
+                            FontAttributes="Bold" />
                 </VerticalStackLayout>
             </Border>
 
-            <Border Stroke="#D3D3D3" StrokeShape="RoundRectangle 8" Padding="10">
-                <controls:MeasurementChartView AutomationId="MeasurementChart"
-                                               Measurements="{Binding Measurements}" />
+            <Border Padding="16"
+                    StrokeShape="RoundRectangle 12"
+                    BackgroundColor="White"
+                    Stroke="#E0E0E0"
+                    StrokeThickness="1">
+                <VerticalStackLayout Spacing="10">
+                    <Label Text="Trend"
+                           FontSize="18"
+                           FontAttributes="Bold" />
+                    <controls:MeasurementChartView AutomationId="MeasurementChart"
+                                                   Measurements="{Binding ChartMeasurements}"
+                                                   HeightRequest="280" />
+                </VerticalStackLayout>
             </Border>
 
-            <!-- List of Recent Entries -->
-            <Label Text="Recent History" FontSize="1.2" FontAttributes="Bold" />
-            <CollectionView AutomationId="MeasurementHistory"
-                            ItemsSource="{Binding Measurements}">
-                <CollectionView.ItemTemplate>
-                    <DataTemplate>
-                        <HorizontalStackLayout Padding="10">
-                            <Label Text="{Binding Date}" WidthRequest="100"/>
-                            <Label Text="{Binding WeightLbs, StringFormat='{0} lbs'}" />
-                            <Label Text="{Binding BodyFatPercent, StringFormat='{0}%'}" Margin="20,0" />
-                        </HorizontalStackLayout>
-                    </DataTemplate>
-                </CollectionView.ItemTemplate>
-            </CollectionView>
+            <VerticalStackLayout Spacing="8">
+                <Label Text="Recent Entries"
+                       FontSize="18"
+                       FontAttributes="Bold" />
+                <Label Text="Tap an entry to load it back into the form."
+                       FontSize="12"
+                       TextColor="#777777"
+                       IsVisible="{Binding HasMeasurements}" />
+                <Label Text="No measurements saved yet."
+                       FontSize="13"
+                       TextColor="#777777"
+                       IsVisible="{Binding NoMeasurements}" />
+
+                <CollectionView AutomationId="MeasurementHistory"
+                                ItemsSource="{Binding RecentMeasurements}"
+                                SelectionMode="None">
+                    <CollectionView.ItemTemplate>
+                        <DataTemplate x:DataType="models:BodyMeasurement">
+                            <Border Padding="14,12"
+                                    Margin="0,0,0,10"
+                                    StrokeShape="RoundRectangle 12"
+                                    BackgroundColor="White"
+                                    Stroke="#E0E0E0"
+                                    StrokeThickness="1">
+                                <Border.GestureRecognizers>
+                                    <TapGestureRecognizer Command="{Binding Source={x:Reference PageRoot}, Path=BindingContext.SelectMeasurementCommand}"
+                                                          CommandParameter="{Binding .}" />
+                                </Border.GestureRecognizers>
+                                <VerticalStackLayout Spacing="4">
+                                    <Label Text="{Binding DisplayDate}"
+                                           FontSize="15"
+                                           FontAttributes="Bold"
+                                           TextColor="#512BD4" />
+                                    <Label Text="{Binding MeasurementSummary}"
+                                           FontSize="14"
+                                           TextColor="#333333" />
+                                    <Label Text="{Binding Notes}"
+                                           FontSize="12"
+                                           TextColor="#777777"
+                                           IsVisible="{Binding HasNotes}" />
+                                </VerticalStackLayout>
+                            </Border>
+                        </DataTemplate>
+                    </CollectionView.ItemTemplate>
+                </CollectionView>
+            </VerticalStackLayout>
+
         </VerticalStackLayout>
     </ScrollView>
+
 </ContentPage>

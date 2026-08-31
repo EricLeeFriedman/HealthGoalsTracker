@@ -8,69 +8,168 @@ namespace HealthGoalsTracker.ViewModels;
 
 public partial class MeasurementsViewModel : ObservableObject
 {
-    public IMeasurementService MeasurementService { get; }
+    public IMeasurementService MeasurementService;
 
     [ObservableProperty]
-    public partial ObservableCollection<BodyMeasurement> Measurements { get; set; } = new();
+    public partial DateTime EntryDate { get; set; } = DateTime.Today;
 
     [ObservableProperty]
-    public partial double? WeightLbs { get; set; }
+    public partial string WeightText { get; set; } = "";
 
     [ObservableProperty]
-    public partial double? BodyFatPercent { get; set; }
+    public partial string BodyFatText { get; set; } = "";
 
     [ObservableProperty]
-    public partial string Notes { get; set; } = string.Empty;
+    public partial string Notes { get; set; } = "";
 
     [ObservableProperty]
-    public partial DateTime SelectedDate { get; set; } = DateTime.Today;
+    public partial ObservableCollection<BodyMeasurement> RecentMeasurements { get; set; } = [];
 
     [ObservableProperty]
-    public partial bool IsRefreshing { get; set; }
+    public partial ObservableCollection<BodyMeasurement> ChartMeasurements { get; set; } = [];
+
+    [ObservableProperty]
+    public partial bool IsLoading { get; set; }
+
+    public bool HasMeasurements => RecentMeasurements.Count > 0;
+    public bool NoMeasurements => !HasMeasurements;
 
     public MeasurementsViewModel(IMeasurementService measurementService)
     {
         MeasurementService = measurementService;
     }
 
-    [RelayCommand]
     public async Task LoadAsync()
     {
-        if (IsRefreshing) return;
-        IsRefreshing = true;
+        if (IsLoading) return;
+
+        IsLoading = true;
         try
         {
-            var list = await MeasurementService.GetMeasurementsAsync();
-            Measurements.Clear();
-            foreach (var m in list)
-            {
-                Measurements.Add(m);
-            }
+            await RefreshMeasurementsAsync();
+            await LoadMeasurementForSelectedDateAsync();
         }
         finally
         {
-            IsRefreshing = false;
+            IsLoading = false;
         }
+    }
+
+    partial void OnEntryDateChanged(DateTime value)
+    {
+        _ = LoadMeasurementForSelectedDateAsync();
     }
 
     [RelayCommand]
     public async Task SaveMeasurementAsync()
     {
-        var newEntry = new BodyMeasurement
+        var weight = TryParseNullableDouble(WeightText, "weight");
+        if (weight.HasError)
         {
-            Id = Guid.NewGuid().ToString(),
-            UserId = "local", // Placeholder until Auth is implemented
-            Date = SelectedDate.ToString("yyyy-MM-dd"),
-            WeightLbs = WeightLbs,
-            BodyFatPercent = BodyFatPercent,
-            Notes = Notes,
-            UpdatedAt = DateTime.UtcNow
-        };
+            await ShowAlertAsync("Invalid Number", $"Please enter a valid {weight.FieldName}.");
+            return;
+        }
 
-        await MeasurementService.SaveMeasurementAsync(newEntry);
-        WeightLbs = null;
-        BodyFatPercent = null;
-        Notes = string.Empty;
-        await LoadAsync();
+        var bodyFat = TryParseNullableDouble(BodyFatText, "body fat");
+        if (bodyFat.HasError)
+        {
+            await ShowAlertAsync("Invalid Number", $"Please enter a valid {bodyFat.FieldName}.");
+            return;
+        }
+
+        if (weight.Value.HasValue && weight.Value.Value <= 0)
+        {
+            await ShowAlertAsync("Invalid Weight", "Weight must be greater than 0.");
+            return;
+        }
+
+        if (bodyFat.Value.HasValue && (bodyFat.Value.Value < 0 || bodyFat.Value.Value > 100))
+        {
+            await ShowAlertAsync("Invalid Body Fat", "Body fat must be between 0 and 100.");
+            return;
+        }
+
+        var trimmedNotes = string.IsNullOrWhiteSpace(Notes) ? null : Notes.Trim();
+        if (!weight.Value.HasValue && !bodyFat.Value.HasValue && string.IsNullOrWhiteSpace(trimmedNotes))
+        {
+            await ShowAlertAsync("Nothing To Save", "Enter a weight, body fat %, or note before saving.");
+            return;
+        }
+
+        var selectedDate = DateOnly.FromDateTime(EntryDate);
+        var existing = await MeasurementService.GetMeasurementForDateAsync(selectedDate);
+
+        var measurement = existing ?? new BodyMeasurement();
+        measurement.Date = selectedDate.ToString("yyyy-MM-dd");
+        measurement.WeightLbs = weight.Value;
+        measurement.BodyFatPercent = bodyFat.Value;
+        measurement.Notes = trimmedNotes;
+
+        await MeasurementService.SaveMeasurementAsync(measurement);
+        await RefreshMeasurementsAsync();
+        await LoadMeasurementForSelectedDateAsync();
     }
+
+    [RelayCommand]
+    public async Task SelectMeasurementAsync(BodyMeasurement? measurement)
+    {
+        if (measurement == null) return;
+
+        var selectedDate = measurement.MeasurementDate.ToDateTime(TimeOnly.MinValue);
+        if (EntryDate.Date == selectedDate.Date)
+        {
+            await LoadMeasurementForSelectedDateAsync();
+            return;
+        }
+
+        EntryDate = selectedDate;
+    }
+
+    public async Task RefreshMeasurementsAsync()
+    {
+        var measurements = await MeasurementService.GetMeasurementsAsync();
+
+        RecentMeasurements.Clear();
+        foreach (var measurement in measurements.OrderByDescending(m => m.Date))
+            RecentMeasurements.Add(measurement);
+
+        ChartMeasurements.Clear();
+        foreach (var measurement in measurements
+                     .Where(m => m.WeightLbs.HasValue || m.BodyFatPercent.HasValue)
+                     .OrderBy(m => m.Date))
+            ChartMeasurements.Add(measurement);
+
+        OnPropertyChanged(nameof(HasMeasurements));
+        OnPropertyChanged(nameof(NoMeasurements));
+    }
+
+    public async Task LoadMeasurementForSelectedDateAsync()
+    {
+        var measurement = await MeasurementService.GetMeasurementForDateAsync(DateOnly.FromDateTime(EntryDate));
+        WeightText = measurement?.WeightLbs?.ToString("0.##") ?? "";
+        BodyFatText = measurement?.BodyFatPercent?.ToString("0.##") ?? "";
+        Notes = measurement?.Notes ?? "";
+    }
+
+    public async Task ShowAlertAsync(string title, string message)
+    {
+        await GetCurrentPage().DisplayAlertAsync(title, message, "OK");
+    }
+
+    public (double? Value, bool HasError, string FieldName) TryParseNullableDouble(
+        string text,
+        string fieldName)
+    {
+        if (string.IsNullOrWhiteSpace(text))
+            return (null, false, fieldName);
+
+        if (double.TryParse(text.Trim(), out var value))
+            return (value, false, fieldName);
+
+        return (null, true, fieldName);
+    }
+
+    public static Page GetCurrentPage() =>
+        Application.Current!.Windows[0].Page
+            ?? throw new InvalidOperationException("No active page found.");
 }

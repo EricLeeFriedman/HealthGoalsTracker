@@ -1,9 +1,7 @@
-using SQLite;
-using System.Collections.Generic;
-using System.Threading.Tasks;
 using HealthGoalsTracker.Models;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
+using SQLite;
 
 namespace HealthGoalsTracker.Services;
 
@@ -49,29 +47,42 @@ public class LocalMeasurementService : IMeasurementService
     public async Task<List<BodyMeasurement>> GetMeasurementsAsync()
     {
         await InitializeAsync();
-        return await Database.Table<BodyMeasurement>()
-            .OrderByDescending(m => m.Date)
-            .ToListAsync();
+        return await Database.QueryAsync<BodyMeasurement>(
+            "SELECT * FROM BodyMeasurement WHERE UserId = 'local' ORDER BY Date DESC");
     }
 
-    public async Task<bool> SaveMeasurementAsync(BodyMeasurement measurement)
+    public async Task<BodyMeasurement?> GetMeasurementForDateAsync(DateOnly date)
     {
         await InitializeAsync();
+        var dateKey = date.ToString("yyyy-MM-dd");
+        return await Database.Table<BodyMeasurement>()
+            .Where(m => m.UserId == "local" && m.Date == dateKey)
+            .FirstOrDefaultAsync();
+    }
+
+    public async Task SaveMeasurementAsync(BodyMeasurement measurement)
+    {
+        await InitializeAsync();
+
+        measurement.UserId = "local";
         measurement.UpdatedAt = DateTime.UtcNow;
+
         var existing = await Database.Table<BodyMeasurement>()
-            .Where(item => item.UserId == measurement.UserId && item.Date == measurement.Date)
+            .Where(m => m.UserId == measurement.UserId && m.Date == measurement.Date)
             .FirstOrDefaultAsync();
 
-        if (existing != null)
+        if (existing == null)
         {
-            measurement.Id = existing.Id;
-            await Database.UpdateAsync(measurement);
-            Logger.LogInformation("Existing measurement updated");
-            return true;
+            await Database.InsertAsync(measurement);
+            Logger.LogInformation("New measurement saved");
+            return;
         }
 
-        await Database.InsertAsync(measurement);
-        Logger.LogInformation("New measurement saved");
-        return true;
+        existing.WeightLbs = measurement.WeightLbs;
+        existing.BodyFatPercent = measurement.BodyFatPercent;
+        existing.Notes = measurement.Notes;
+        existing.UpdatedAt = measurement.UpdatedAt;
+        await Database.UpdateAsync(existing);
+        Logger.LogInformation("Existing measurement updated");
     }
 }

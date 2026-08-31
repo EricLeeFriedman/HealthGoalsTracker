@@ -1,11 +1,11 @@
-using System.Collections.Generic;
-using System.Threading.Tasks;
 using HealthGoalsTracker.Models;
 
 namespace HealthGoalsTracker.Services;
 
 public interface IMeasurementService
 {
+    Task InitializeAsync();
     Task<List<BodyMeasurement>> GetMeasurementsAsync();
-    Task<bool> SaveMeasurementAsync(BodyMeasurement measurement);
+    Task<BodyMeasurement?> GetMeasurementForDateAsync(DateOnly date);
+    Task SaveMeasurementAsync(BodyMeasurement measurement);
 }

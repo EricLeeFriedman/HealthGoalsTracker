@@ -69,6 +69,9 @@
 		<PackageReference Include="SQLitePCLRaw.lib.e_sqlite3" Version="2.1.13"
 		                  Condition="'$(TargetFramework)' == 'net10.0-windows10.0.19041.0'" />
 		<PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.0" />
+	</ItemGroup>
+
+	<ItemGroup Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">
 		<PackageReference Include="System.Drawing.Common" Version="10.0.8" />
 	</ItemGroup>
 

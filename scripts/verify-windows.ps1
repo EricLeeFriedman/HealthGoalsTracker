@@ -104,6 +104,26 @@ function Find-ElementByName(
     return $element
 }
 
+function Wait-ElementNameMatches(
+    [System.Windows.Automation.AutomationElement]$Root,
+    [string]$AutomationId,
+    [string]$Pattern,
+    [int]$TimeoutSeconds = 30
+) {
+    $element = Find-ElementById $Root $AutomationId
+    $deadline = (Get-Date).AddSeconds($TimeoutSeconds)
+
+    do {
+        [string]$name = $element.Current.Name
+        if ($name -match $Pattern) {
+            return $element
+        }
+        Start-Sleep -Milliseconds 200
+    } while ((Get-Date) -lt $deadline)
+
+    throw "Automation element '$AutomationId' did not match '$Pattern'. Last value: '$name'."
+}
+
 function Open-Navigation(
     [System.Windows.Automation.AutomationElement]$Root
 ) {
@@ -192,7 +212,7 @@ try {
     $root = Wait-AppRoot
     [HealthGoalsUiNative]::SetForegroundWindow($app.MainWindowHandle) | Out-Null
 
-    $dailyScore = Find-ElementById $root 'DailyScore'
+    $dailyScore = Wait-ElementNameMatches $root 'DailyScore' '^Today:\s*\d+\s*/\s*\d+$'
     [string]$initialDailyScore = $dailyScore.Current.Name
     if ($initialDailyScore -notmatch '^Today:\s*0\s*/\s*14$') {
         throw "Unexpected initial daily score: '$initialDailyScore'."
