@@ -76,4 +76,36 @@ public class DailyGoalScoringTests
             await DatabaseTestSupport.DisposeAsync(service, databasePath);
         }
     }
+
+    [Fact]
+    public async Task ResetTodayAsync_ClearsDailyAndWeeklyGoalCompletions()
+    {
+        var databasePath = DatabaseTestSupport.CreatePath("daily");
+        var service = new LocalGoalService(databasePath);
+
+        try
+        {
+            var record = await service.GetTodayRecordAsync();
+            var goals = await service.GetGoalsAsync();
+            foreach (var goal in goals)
+            {
+                await service.ToggleGoalCompletionAsync(goal.Id);
+            }
+
+            await service.ResetTodayAsync();
+
+            var updatedRecord = await service.GetRecordForDateAsync(
+                DateOnly.FromDateTime(DateTime.Today));
+            var updatedEntries = await service.GetDailyEntriesAsync(record.Id);
+
+            Assert.NotNull(updatedRecord);
+            Assert.Equal(0, updatedRecord.TotalPointsEarned);
+            Assert.Equal(14, updatedRecord.TotalPointsPossible);
+            Assert.All(updatedEntries, entry => Assert.False(entry.IsCompleted));
+        }
+        finally
+        {
+            await DatabaseTestSupport.DisposeAsync(service, databasePath);
+        }
+    }
 }

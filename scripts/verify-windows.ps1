@@ -35,6 +35,12 @@ public static class HealthGoalsUiNative
 
     [DllImport("user32.dll")]
     public static extern bool PrintWindow(IntPtr handle, IntPtr deviceContext, uint flags);
+
+    [DllImport("user32.dll")]
+    public static extern bool SetCursorPos(int x, int y);
+
+    [DllImport("user32.dll")]
+    public static extern void mouse_event(uint flags, uint dx, uint dy, uint data, UIntPtr extraInfo);
 }
 '@
 
@@ -163,6 +169,17 @@ function Invoke-Element(
         [System.Windows.Automation.InvokePattern]::Pattern).Invoke()
 }
 
+function Click-ElementCenter(
+    [System.Windows.Automation.AutomationElement]$Element
+) {
+    $bounds = $Element.Current.BoundingRectangle
+    $x = [int]($bounds.Left + ($bounds.Width / 2))
+    $y = [int]($bounds.Top + ($bounds.Height / 2))
+    [HealthGoalsUiNative]::SetCursorPos($x, $y) | Out-Null
+    [HealthGoalsUiNative]::mouse_event(0x0002, 0, 0, 0, [UIntPtr]::Zero)
+    [HealthGoalsUiNative]::mouse_event(0x0004, 0, 0, 0, [UIntPtr]::Zero)
+}
+
 function Save-Screenshot([string]$Name) {
     $rect = [HealthGoalsUiNative+RECT]::new()
     [HealthGoalsUiNative]::GetWindowRect(
@@ -219,6 +236,22 @@ try {
     }
     Save-Screenshot '01-home'
 
+    $sleepGoal = Find-ElementByName $root 'Slept at least 7 hours'
+    Click-ElementCenter $sleepGoal
+    $completedScore = Wait-ElementNameMatches $root 'DailyScore' '^Today:\s*3\s*/\s*14$'
+    [string]$completedScoreText = $completedScore.Current.Name
+    Open-Navigation $root
+    $resetToday = Find-ElementByName $root '🔁  Reset Today'
+    Click-ElementCenter $resetToday
+    Start-Sleep -Milliseconds 500
+    $resetConfirmation = Find-ElementByName $root 'Reset'
+    $resetConfirmation.GetCurrentPattern(
+        [System.Windows.Automation.InvokePattern]::Pattern).Invoke()
+    $resetScore = Wait-ElementNameMatches $root 'DailyScore' '^Today:\s*0\s*/\s*14$'
+    [string]$resetScoreText = $resetScore.Current.Name
+    Start-Sleep -Seconds 1
+    Save-Screenshot '02-reset-today'
+
     Select-NavigationItem $root '📊  Measurements'
     Set-ElementValue $root 'MeasurementWeight' '180'
     Set-ElementValue $root 'MeasurementBodyFat' '20'
@@ -234,7 +267,7 @@ try {
     if ($historyText -notmatch '180 lbs' -or $historyText -notmatch '20%') {
         throw "Saved measurement was not visible in recent history: '$historyText'."
     }
-    Save-Screenshot '02-measurements'
+    Save-Screenshot '03-measurements'
 
     Select-NavigationItem $root '📅  History'
     $todayId = "HistoryDay$([DateTime]::Today.ToString('yyyyMMdd'))"
@@ -245,12 +278,14 @@ try {
     if ($weeklySummary.Current.Name -notmatch '^This week: \d+%') {
         throw "Weekly History summary was not visible: '$($weeklySummary.Current.Name)'."
     }
-    Save-Screenshot '03-history'
+    Save-Screenshot '04-history'
 
     $diagnosticLog = Join-Path $dataPath 'diagnostics\healthgoals.log'
     $requiredEvents = @(
         'Application started',
         'Main page loaded',
+        "Today's goal completion state reset",
+        'Reset Today completed',
         'Measurements page loaded',
         'New measurement saved',
         'History page loaded',
@@ -269,6 +304,8 @@ try {
     @(
         'Windows runtime verification passed.'
         "Daily score: $initialDailyScore"
+        "Completed score before reset: $completedScoreText"
+        "Score after reset: $resetScoreText"
         "Measurement history: $historyText"
         "History weekly summary: $($weeklySummary.Current.Name)"
         "Diagnostics: $diagnosticLog"

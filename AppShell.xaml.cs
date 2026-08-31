@@ -1,5 +1,6 @@
 using System.Text.Json;
 using HealthGoalsTracker.Services;
+using HealthGoalsTracker.ViewModels;
 using HealthGoalsTracker.Views;
 using Microsoft.Extensions.Logging;
 
@@ -8,17 +9,20 @@ namespace HealthGoalsTracker
     public partial class AppShell : Shell
     {
         public IGoalService GoalService;
+        public MainViewModel MainViewModel;
         public IDiagnosticsService DiagnosticsService;
         public ILogger<AppShell> Logger;
 
         public AppShell(
             IServiceProvider services,
             IGoalService goalService,
+            MainViewModel mainViewModel,
             IDiagnosticsService diagnosticsService,
             ILogger<AppShell> logger)
         {
             InitializeComponent();
             GoalService = goalService;
+            MainViewModel = mainViewModel;
             DiagnosticsService = diagnosticsService;
             Logger = logger;
 
@@ -57,7 +61,11 @@ namespace HealthGoalsTracker
 
         void AddActionItems()
         {
-            var resetItem = new MenuItem { Text = "🔁  Reset Today" };
+            var resetItem = new MenuItem
+            {
+                AutomationId = "ResetToday",
+                Text = "🔁  Reset Today"
+            };
             resetItem.Clicked += OnResetTodayClicked;
             Items.Add(resetItem);
 
@@ -91,9 +99,9 @@ namespace HealthGoalsTracker
             if (!confirmed) return;
 
             await GoalService.ResetTodayAsync();
+            await MainViewModel.LoadAsync();
             Logger.LogInformation("Reset Today completed");
 
-            // Navigate home so MainPage reloads via OnAppearing.
             await GoToAsync("//home");
         }
 
