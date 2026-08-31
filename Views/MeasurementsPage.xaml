@@ -3,6 +3,7 @@
     Title="Body Measurements"
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:controls="clr-namespace:HealthGoalsTracker.Controls"
     x:Name="ThisPage">
 
     <ScrollView>
@@ -29,10 +30,8 @@
                 </VerticalStackLayout>
             </Border>
 
-            <!-- Chart Placeholder (SkiaSharp) -->
             <Border Stroke="#D3D3D3" StrokeShape="RoundRectangle 8" Padding="10">
-                <Label Text="Chart Area (SkiaSharp Implementation)" 
-                       HorizontalOptions="Center" VerticalOptions="Center"/>
+                <controls:MeasurementChartView Measurements="{Binding Measurements}" />
             </Border>
 
             <!-- List of Recent Entries -->

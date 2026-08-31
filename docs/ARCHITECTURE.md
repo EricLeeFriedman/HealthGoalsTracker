@@ -53,8 +53,8 @@ HealthGoalsTracker is an offline-first .NET MAUI app for **Android** (+ Windows 
 - `LocalGoalService` owns goals, daily records, goal-entry snapshots, settings, and notification schedules.
 - `LocalMeasurementService` owns `BodyMeasurement` rows in the same SQLite database.
 - Measurements are unique by `(UserId, Date)`. Saving the same date again updates the existing row.
-- `MeasurementsPage` currently provides date, optional weight, optional body-fat percentage, notes, and recent history.
-- The dual-axis measurement chart is not implemented yet; the page contains a placeholder for Phase 11b.
+- `MeasurementsPage` provides date, optional weight, optional body-fat percentage, notes, recent history, and a `GraphicsView` chart.
+- `MeasurementChartView` plots weight against the left Y-axis and body-fat percentage against the right Y-axis. It supports missing values in either series and spaces points by measurement date.
 
 ## Planned Data Sync Strategy
 
@@ -102,7 +102,7 @@ User taps "Sign in with Google"
   /Models                    ← Goal, DailyRecord, DailyGoalEntry, BodyMeasurement, UserSettings
   /ViewModels
   /Views                     ← HistoryPage, MeasurementsPage, NotificationsPage
-  /Controls                  ← GoalCard (emoji + weekly badge), ConfettiView
+  /Controls                  ← GoalCard, ConfettiView, MeasurementChartView
   /Services                  ← IGoalService, LocalGoalService, IMeasurementService, LocalMeasurementService
   /Platforms/Android
   /infra                     ← Bicep IaC
