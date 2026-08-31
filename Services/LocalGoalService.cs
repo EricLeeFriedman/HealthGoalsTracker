@@ -394,7 +394,11 @@ public class LocalGoalService : IGoalService
     {
         await InitializeAsync();
         var weekEnd = weekStart.AddDays(6);
-        var records = await GetRecordsForRangeAsync(weekStart, weekEnd);
+        var fromKey = weekStart.ToString("yyyy-MM-dd");
+        var toKey = weekEnd.ToString("yyyy-MM-dd");
+        var records = await Database.QueryAsync<DailyRecord>(
+            "SELECT * FROM DailyRecord WHERE UserId = ? AND Date >= ? AND Date <= ? ORDER BY Date",
+            userId, fromKey, toKey);
 
         if (records.Count == 0)
             return (0, 0);
