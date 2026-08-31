@@ -23,7 +23,7 @@ This file lives in the repo so any agent or developer on any machine can pick up
 | 10 follow-up | **History weekly score** — selected-day breakdown shows the canonical Monday–Sunday weekly percentage and date range, including weeks where the selected day has no record | `269bc7a` |
 | Test foundation | **Automated business-logic coverage** — Windows-targeted xUnit project covers measurement upsert/order behavior, weekly averaging/session caps/user isolation, Monday week boundaries, and chart range handling | `b15c63d` |
 | Diagnostics | **Persistent runtime diagnostics** — bounded rotating file logs for lifecycle, page-load, persistence, notification, export, and unhandled-error events; excludes health values and identifiers; Shell action exports a stable log snapshot | `2ebcf5b` |
-| Runtime verification | **Windows + Android smoke verification** — isolated Windows UI Automation through Home/Measurements/History with synthetic persistence and screenshots; Android API 36 deployment with screenshot, UI hierarchy, app diagnostics, notification scheduling, and logcat inspection | `7ba9ddc` + this change |
+| Runtime verification | **Windows + Android smoke verification** — isolated Windows UI Automation through Home/Measurements/History with synthetic persistence and screenshots; Android API 36 deployment with screenshot, UI hierarchy, app diagnostics, notification scheduling, and logcat inspection | `7ba9ddc` + `eb1ff42` |
 | Cloud contract | **Authentication and synchronization design** — token trust boundary, versioned API routes, sync envelopes, idempotency, conflict/retry behavior, Cosmos layout, and diagnostic privacy rules documented before implementation | `e46858e` |
 
 ---
