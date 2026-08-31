@@ -37,7 +37,7 @@
 
                     <Button AutomationId="SaveMeasurement"
                             Text="Save Measurement"
-                            Command="{Binding SaveMeasurementCommand}" 
+                            Command="{Binding SaveMeasurementCommand}"
                             BackgroundColor="#5D3FD3" TextColor="White" />
                 </VerticalStackLayout>
             </Border>
