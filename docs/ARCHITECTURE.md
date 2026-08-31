@@ -55,6 +55,7 @@ HealthGoalsTracker is an offline-first .NET MAUI app for **Android** (+ Windows 
 - Measurements are unique by `(UserId, Date)`. Saving the same date again updates the existing row.
 - `MeasurementsPage` provides date, optional weight, optional body-fat percentage, notes, recent history, and a `GraphicsView` chart.
 - `MeasurementChartView` plots weight against the left Y-axis and body-fat percentage against the right Y-axis. It supports missing values in either series and spaces points by measurement date.
+- Selecting a day in History shows both that day's completion and the canonical Monday–Sunday weekly score.
 
 ## Planned Data Sync Strategy
 

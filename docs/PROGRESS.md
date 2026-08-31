@@ -20,13 +20,11 @@ This file lives in the repo so any agent or developer on any machine can pick up
 | 9+10 | **Weekly scoring + main page header** — `GetWeeklyScoreAsync` (avg daily pts over days-with-data + min(training,3), max 17, as %); daily score correctly excludes `IsWeeklyOnly` goals; `GoalCard` shows `🗓 Weekly` badge; "Toggle Weekly-Only" in options menu; `AddGoalAsync` prompts for weekly-only; header shows `Today: X / 14` + `This week: 74%` | `698a3e2` |
 | 11 | **Body measurements** — `BodyMeasurement`, SQLite-backed `IMeasurementService` / `LocalMeasurementService`, one measurement per user/date with update-on-resave behavior, entry form, recent-history list, Shell navigation, DI wiring, and a MAUI `GraphicsView` dual-axis chart supporting sparse weight/body-fat series | `abad07b` + this change |
 | Build cleanup | Replaced obsolete MAUI `Frame` usage, migrated CommunityToolkit observable fields to WinRT/AOT-compatible partial properties, and pinned patched SQLite native binaries for warning-free Android and Windows builds | This change |
+| 10 follow-up | **History weekly score** — selected-day breakdown shows the canonical Monday–Sunday weekly percentage and date range, including weeks where the selected day has no record | This change |
 
 ---
 
 ## Remaining Phases
-
-### Phase 10 follow-up — History Weekly Score
-- **Remaining from Phase 10**: update `HistoryViewModel` + `HistoryPage.xaml` to show weekly score % in the day-breakdown panel
 
 ### Phase 12 — Authentication ⛔ NEEDS USER INTERVENTION
 **What to do before starting:**
