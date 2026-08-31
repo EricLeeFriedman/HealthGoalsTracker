@@ -26,6 +26,7 @@ This file lives in the repo so any agent or developer on any machine can pick up
 | Runtime verification | **Windows + Android smoke verification** — isolated Windows UI Automation through Home/Measurements/History with synthetic persistence and screenshots; Android API 36 deployment with screenshot, UI hierarchy, app diagnostics, notification scheduling, and logcat inspection | `7ba9ddc` + `eb1ff42` |
 | Windows visual verification | **Cross-theme rendering coverage** — expanded the Windows product run to verify the complete flyout, screenshot contrast, calendar labels and seven-column geometry, measurement content, notification labels, persisted state, and diagnostics; fixed white-on-white Windows rendering by making the light-only visual design explicit and using contrasting calendar text | current working tree |
 | Shared live product tests | **Cross-platform feature verification** — `scripts/live-tests/features.json` defines eight shared product outcomes; Windows UI Automation and Android ADB/UIAutomator runners execute the same catalog and emit screenshots, diagnostics, process logs, and machine-readable result reports. The first repeatable Android run exposed and fixed concurrent creation of today's record during startup. | current working tree |
+| Continuous integration | **GitHub Actions quality gate** — public-repository Windows runner restores once, runs all tests, builds Windows and Android targets with warnings treated as errors, and retains TRX results plus a self-contained signed development APK for 14 days | current working tree |
 | Cloud contract | **Authentication and synchronization design** — token trust boundary, versioned API routes, sync envelopes, idempotency, conflict/retry behavior, Cosmos layout, and diagnostic privacy rules documented before implementation | `e46858e` |
 
 ---
@@ -64,8 +65,9 @@ This file lives in the repo so any agent or developer on any machine can pick up
 - `/infra/main.bicep` provisioning all Azure resources (Functions, Cosmos DB, Entra app registration)
 - `az deployment` command to stand everything up in one shot
 
-### Phase 16 — CI/CD ⛔ NEEDS AZURE CREDENTIALS
-- GitHub Actions: build + lint on PR, APK artifact on push to main
+### Phase 16 — Azure Deployment ⛔ NEEDS AZURE CREDENTIALS
+- Continuous build, test, and APK artifact generation are implemented.
+- Add Azure deployment after the backend and infrastructure have been validated manually.
 - Secrets: `AZURE_CREDENTIALS`, Entra `CLIENT_ID`, `TENANT_ID`
 
 ---

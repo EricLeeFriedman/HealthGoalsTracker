@@ -179,4 +179,8 @@ User taps "Sign in with Google"
   APK, resets only the app's test data, and exercises the same shared feature contract
   with UIAutomator selectors. It also checks notification permission, four scheduled
   alarms, app diagnostics, and app-scoped logcat errors.
-- **CI/CD and Azure deployment**: planned; no workflow or Bicep deployment is currently present.
+- **Continuous integration**: `.github/workflows/ci.yml` runs on pushes and pull requests
+  to `master`. A Windows runner restores once, runs the requirement tests, builds both
+  target frameworks with warnings treated as errors, and retains TRX results and a
+  self-contained signed development APK for 14 days.
+- **Azure deployment**: planned; no deployment workflow or Bicep deployment is currently present.

@@ -1,0 +1,91 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - master
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  DOTNET_CLI_TELEMETRY_OPTOUT: true
+  DOTNET_NOLOGO: true
+
+jobs:
+  build-and-test:
+    name: Build and test
+    runs-on: windows-latest
+    timeout-minutes: 45
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Install .NET 10
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Install MAUI workloads
+        shell: pwsh
+        run: dotnet workload install android maui-windows
+
+      - name: Restore
+        shell: pwsh
+        run: dotnet restore .\HealthGoalsTracker.slnx
+
+      - name: Run tests
+        shell: pwsh
+        run: >
+          dotnet test .\HealthGoalsTracker.Tests\HealthGoalsTracker.Tests.csproj
+          --configuration Debug
+          --no-restore
+          --logger "trx;LogFileName=tests.trx"
+          --results-directory .\TestResults
+          -p:TreatWarningsAsErrors=true
+
+      - name: Build Windows
+        shell: pwsh
+        run: >
+          dotnet build .\HealthGoalsTracker.csproj
+          --framework net10.0-windows10.0.19041.0
+          --configuration Debug
+          --no-restore
+          -p:TreatWarningsAsErrors=true
+
+      - name: Build Android APK
+        shell: pwsh
+        run: >
+          dotnet build .\HealthGoalsTracker.csproj
+          --framework net10.0-android
+          --configuration Debug
+          --no-restore
+          -p:AndroidPackageFormats=apk
+          -p:EmbedAssembliesIntoApk=true
+          -p:TreatWarningsAsErrors=true
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: TestResults\*.trx
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Upload Android APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: health-goals-tracker-android
+          path: bin\Debug\net10.0-android\*-Signed.apk
+          if-no-files-found: error
+          retention-days: 14
