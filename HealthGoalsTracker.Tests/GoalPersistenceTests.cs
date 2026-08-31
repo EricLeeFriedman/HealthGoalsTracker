@@ -66,6 +66,30 @@ public class GoalPersistenceTests
     }
 
     [Fact]
+    public async Task GetTodayRecordAsync_ConcurrentFirstAccessCreatesOneRecord()
+    {
+        var databasePath = DatabaseTestSupport.CreatePath("goals");
+        var service = new LocalGoalService(databasePath);
+
+        try
+        {
+            var records = await Task.WhenAll(
+                Enumerable.Range(0, 20)
+                    .Select(_ => service.GetTodayRecordAsync()));
+
+            Assert.Single(records.Select(record => record.Id).Distinct());
+            Assert.Single(await service.Database.Table<DailyRecord>().ToListAsync());
+            Assert.Equal(
+                8,
+                (await service.Database.Table<DailyGoalEntry>().ToListAsync()).Count);
+        }
+        finally
+        {
+            await DatabaseTestSupport.DisposeAsync(service, databasePath);
+        }
+    }
+
+    [Fact]
     public async Task SaveGoalAsync_AddsAndUpdatesEditableGoalFields()
     {
         var databasePath = DatabaseTestSupport.CreatePath("goals");

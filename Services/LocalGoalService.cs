@@ -9,6 +9,7 @@ public class LocalGoalService : IGoalService
 {
     public SQLiteAsyncConnection Database;
     public SemaphoreSlim InitLock = new(1, 1);
+    public SemaphoreSlim DailyRecordLock = new(1, 1);
     public bool IsInitialized;
     public ILogger<LocalGoalService> Logger;
 
@@ -137,65 +138,73 @@ public class LocalGoalService : IGoalService
     public async Task<DailyRecord> GetTodayRecordAsync()
     {
         await InitializeAsync();
-        var todayKey = DateOnly.FromDateTime(DateTime.Today).ToString("yyyy-MM-dd");
-        var goals = await GetGoalsAsync();
-
-        var record = await Database.Table<DailyRecord>()
-            .Where(r => r.UserId == "local" && r.Date == todayKey)
-            .FirstOrDefaultAsync();
-
-        if (record == null)
+        await DailyRecordLock.WaitAsync();
+        try
         {
-            // First access today — create the record and a snapshot entry for every active goal.
-            record = new DailyRecord
-            {
-                Date = todayKey,
-                TotalPointsPossible = goals.Where(g => !g.IsWeeklyOnly).Sum(g => g.Points)
-            };
-            await Database.InsertAsync(record);
+            var todayKey = DateOnly.FromDateTime(DateTime.Today).ToString("yyyy-MM-dd");
+            var goals = await GetGoalsAsync();
 
-            var entries = goals.Select(g => new DailyGoalEntry
-            {
-                DailyRecordId = record.Id,
-                GoalId = g.Id,
-                GoalName = g.Name,
-                IconEmoji = g.IconEmoji,
-                GoalPoints = g.Points,
-                IsWeeklyOnly = g.IsWeeklyOnly
-            }).ToList();
+            var record = await Database.Table<DailyRecord>()
+                .Where(r => r.UserId == "local" && r.Date == todayKey)
+                .FirstOrDefaultAsync();
 
-            await Database.InsertAllAsync(entries);
+            if (record == null)
+            {
+                // First access today — create the record and a snapshot entry for every active goal.
+                record = new DailyRecord
+                {
+                    Date = todayKey,
+                    TotalPointsPossible = goals.Where(g => !g.IsWeeklyOnly).Sum(g => g.Points)
+                };
+                await Database.InsertAsync(record);
+
+                var entries = goals.Select(g => new DailyGoalEntry
+                {
+                    DailyRecordId = record.Id,
+                    GoalId = g.Id,
+                    GoalName = g.Name,
+                    IconEmoji = g.IconEmoji,
+                    GoalPoints = g.Points,
+                    IsWeeklyOnly = g.IsWeeklyOnly
+                }).ToList();
+
+                await Database.InsertAllAsync(entries);
+                return record;
+            }
+
+            // Record already exists — reconcile any goals added since the record was created
+            // (e.g. user adds a new goal mid-day, or goals arrive from cloud sync).
+            var existingEntries = await Database.Table<DailyGoalEntry>()
+                .Where(e => e.DailyRecordId == record.Id)
+                .ToListAsync();
+            var existingGoalIds = existingEntries.Select(e => e.GoalId).ToHashSet();
+
+            var missingGoals = goals.Where(g => !existingGoalIds.Contains(g.Id)).ToList();
+            if (missingGoals.Count > 0)
+            {
+                var newEntries = missingGoals.Select(g => new DailyGoalEntry
+                {
+                    DailyRecordId = record.Id,
+                    GoalId = g.Id,
+                    GoalName = g.Name,
+                    IconEmoji = g.IconEmoji,
+                    GoalPoints = g.Points,
+                    IsWeeklyOnly = g.IsWeeklyOnly
+                }).ToList();
+                await Database.InsertAllAsync(newEntries);
+
+                record.TotalPointsPossible = existingEntries.Where(e => !e.IsWeeklyOnly).Sum(e => e.GoalPoints)
+                                           + missingGoals.Where(g => !g.IsWeeklyOnly).Sum(g => g.Points);
+                record.UpdatedAt = DateTime.UtcNow;
+                await Database.UpdateAsync(record);
+            }
+
             return record;
         }
-
-        // Record already exists — reconcile any goals added since the record was created
-        // (e.g. user adds a new goal mid-day, or goals arrive from cloud sync).
-        var existingEntries = await Database.Table<DailyGoalEntry>()
-            .Where(e => e.DailyRecordId == record.Id)
-            .ToListAsync();
-        var existingGoalIds = existingEntries.Select(e => e.GoalId).ToHashSet();
-
-        var missingGoals = goals.Where(g => !existingGoalIds.Contains(g.Id)).ToList();
-        if (missingGoals.Count > 0)
+        finally
         {
-            var newEntries = missingGoals.Select(g => new DailyGoalEntry
-            {
-                DailyRecordId = record.Id,
-                GoalId = g.Id,
-                GoalName = g.Name,
-                IconEmoji = g.IconEmoji,
-                GoalPoints = g.Points,
-                IsWeeklyOnly = g.IsWeeklyOnly
-            }).ToList();
-            await Database.InsertAllAsync(newEntries);
-
-            record.TotalPointsPossible = existingEntries.Where(e => !e.IsWeeklyOnly).Sum(e => e.GoalPoints)
-                                       + missingGoals.Where(g => !g.IsWeeklyOnly).Sum(g => g.Points);
-            record.UpdatedAt = DateTime.UtcNow;
-            await Database.UpdateAsync(record);
+            DailyRecordLock.Release();
         }
-
-        return record;
     }
 
     public async Task<List<DailyGoalEntry>> GetDailyEntriesAsync(string dailyRecordId)
