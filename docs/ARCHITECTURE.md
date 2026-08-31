@@ -70,7 +70,9 @@ rules are defined in [`CLOUD-CONTRACTS.md`](CLOUD-CONTRACTS.md).
 
 ## Push Notifications
 
-Notifications are **locally scheduled** on the device — no server push required for these simple time-based patterns. The device reschedules each night based on user settings stored in SQLite.
+Notifications are **locally scheduled** on the device — no server push required for these
+simple time-based patterns. Repeating alarms are refreshed on app launch and whenever
+notification settings change.
 Android notification permission is checked and requested before schedules are created;
 denial is recorded without falsely reporting successful scheduling.
 
@@ -117,7 +119,7 @@ User taps "Sign in with Google"
   → Token stored in MSAL cache (Secure Storage on device)
   → Attached as Bearer header on all API calls
   → Functions validates via built-in EasyAuth
-  → UserId = token subject claim (stable per Google account)
+  → UserId = token subject claim (stable within the Entra tenant and API)
 ```
 
 ## Project Structure
@@ -130,7 +132,15 @@ User taps "Sign in with Google"
   /Controls                  ← GoalCard, ConfettiView, MeasurementChartView
   /Services                  ← Local persistence, notifications, and bounded file diagnostics
   /Platforms/Android
-  /infra                     ← Bicep IaC
+  /infra                     ← Planned Bicep IaC
+
+/HealthGoalsTracker.Tests    ← Requirement-driven xUnit tests
+/scripts
+  verify-windows.ps1         ← Isolated Windows UI smoke verification
+/docs
+  ARCHITECTURE.md
+  CLOUD-CONTRACTS.md
+  PROGRESS.md
 
 /HealthGoalsTracker.Functions  ← Planned Azure Functions backend (C#, isolated worker)
   GoalsApi.cs
@@ -141,4 +151,6 @@ User taps "Sign in with Google"
 
 - **Local dev**: `dotnet build -f net10.0-android` (or `net10.0-windows10.0.19041.0` for desktop testing)
 - **Current full build**: `dotnet build` builds Android and Windows on Windows.
+- **Automated tests**: `dotnet test HealthGoalsTracker.Tests\HealthGoalsTracker.Tests.csproj`
+- **Windows UI smoke test**: `.\scripts\verify-windows.ps1` writes ignored evidence beneath `artifacts\windows-verification`.
 - **CI/CD and Azure deployment**: planned; no workflow or Bicep deployment is currently present.

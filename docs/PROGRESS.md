@@ -94,7 +94,7 @@ This file lives in the repo so any agent or developer on any machine can pick up
 | `Services/LocalGoalService.cs` | SQLite implementation |
 | `Services/IMeasurementService.cs` | Body measurement data contract |
 | `Services/LocalMeasurementService.cs` | SQLite implementation for body measurements |
-| `Services/IHealthNotificationService.cs` | `IHealthNotificationService` interface |
+| `Services/INotificationService.cs` | `IHealthNotificationService` interface |
 | `Services/NotificationScheduler.cs` | Plugin.LocalNotification scheduling |
 | `Services/DiagnosticsService.cs` | Rotating persistent logger and exportable diagnostic snapshots |
 | `ViewModels/MainViewModel.cs` | Main page logic (toggle, add, edit, delete, daily + weekly score) |
@@ -108,6 +108,7 @@ This file lives in the repo so any agent or developer on any machine can pick up
 | `Views/MeasurementsPage.xaml` | Body measurements entry form, dual-axis chart, and recent history |
 | `Views/NotificationsPage.xaml` | Notification settings page |
 | `HealthGoalsTracker.Tests/` | xUnit coverage for SQLite services, scoring, week boundaries, and chart calculations |
+| `scripts/verify-windows.ps1` | Isolated Windows UI automation, screenshots, and diagnostic assertions |
 | `AppShell.xaml.cs` | Flyout nav + menu actions |
 | `MauiProgram.cs` | All DI registrations |
 | `.github/copilot-instructions.md` | Copilot context (goals, models, conventions) |
